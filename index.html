@@ -830,25 +830,10 @@ function refreshSidebar(available) {
 
 function addCourse(id) {
   if (completedSet.has(id)) return;
-  const isBypassing = !isCourseAvailable(id) && !isEntryLevel(id);
-  if (isBypassing) {
+  // Track if prereqs were NOT met (bypassed via AP/exam/placement)
+  if (!isCourseAvailable(id) && !isEntryLevel(id)) {
     bypassedSet.add(id);
-    // Auto-bypass prereqs recursively — if you can skip to this course,
-    // you implicitly have credit for its prerequisites too.
-    const c = courseMap[id];
-    if (c && c.prereqGroups) {
-      for (const group of c.prereqGroups) {
-        // Pick the first alternative in each OR-group to auto-bypass
-        for (const alt of group) {
-          if (!completedSet.has(alt) && courseMap[alt]) {
-            addCourse(alt);  // recursive — will auto-bypass its prereqs too
-            break;           // only need one from each OR-group
-          }
-        }
-      }
-    }
   }
-  if (completedSet.has(id)) return;  // may have been added by recursion
   completedSet.add(id);
   pathOrder.push(id);
   refreshGraph();
