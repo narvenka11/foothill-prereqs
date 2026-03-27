@@ -73,26 +73,9 @@
 
   /* ── Sidebar: path builder ── */
   .sidebar {
-    width: 280px; min-width: 200px; max-width: 600px;
+    width: 380px;
     background: #1e293b; border-left: 1px solid #334155;
     display: flex; flex-direction: column; flex-shrink: 0; overflow: hidden;
-  }
-  .resize-handle {
-    width: 8px; cursor: col-resize; background: #1e293b;
-    flex-shrink: 0; position: relative; z-index: 200;
-    border-left: 1px solid #334155; border-right: 1px solid #334155;
-    display: flex; align-items: center; justify-content: center;
-  }
-  .resize-handle::after {
-    content: ''; width: 3px; height: 32px; border-radius: 2px;
-    background: #475569; transition: background .15s;
-  }
-  .resize-handle:hover::after, .resize-handle.active::after {
-    background: #3b82f6;
-  }
-  .resize-overlay {
-    position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-    z-index: 9999; cursor: col-resize; display: none;
   }
   .sidebar-header {
     padding: 14px 16px 10px; border-bottom: 1px solid #334155;
@@ -197,7 +180,7 @@
 
   /* ── Zoom controls ── */
   .zoom-controls {
-    position: absolute; bottom: 20px; right: 300px; display: flex; flex-direction: column; gap: 5px; z-index: 100;
+    position: absolute; bottom: 20px; right: 400px; display: flex; flex-direction: column; gap: 5px; z-index: 100;
   }
   .zoom-btn {
     width: 36px; height: 36px; border-radius: 8px; border: 1px solid #475569;
@@ -238,7 +221,6 @@
 
 <div class="main">
   <div id="cy"></div>
-  <div class="resize-handle" id="resize-handle"></div>
 
   <!-- Sidebar: path builder -->
   <div class="sidebar" id="sidebar">
@@ -268,7 +250,6 @@
 </div>
 
 <div class="tooltip" id="tooltip"></div>
-<div class="resize-overlay" id="resize-overlay"></div>
 
 <div class="zoom-controls">
   <button class="zoom-btn" id="zoom-in" title="Zoom in">+</button>
@@ -692,24 +673,61 @@ function isEntryLevel(courseId) {
   return !c || !c.prereqGroups || c.prereqGroups.length === 0;
 }
 
+// Effective completed set: courses explicitly completed/bypassed PLUS
+// all transitive prereqs implied by bypassed courses.
+// E.g., bypassing MATH 1C implies MATH 1B (its prereq) is satisfied,
+// which implies MATH 1A, etc. These don't appear in the sidebar but
+// count when checking other courses' prereqs.
+function getEffectiveSet() {
+  const effective = new Set(completedSet);
+  function imply(courseId) {
+    const c = courseMap[courseId];
+    if (!c || !c.prereqGroups) return;
+    for (const group of c.prereqGroups) {
+      for (const alt of group) {
+        if (!effective.has(alt)) {
+          effective.add(alt);
+          imply(alt);
+        }
+      }
+    }
+  }
+  for (const id of bypassedSet) {
+    imply(id);
+  }
+  return effective;
+}
+
 function isCourseAvailable(courseId) {
   if (completedSet.has(courseId)) return false;
   const c = courseMap[courseId];
   if (!c || !c.prereqGroups || c.prereqGroups.length === 0) return true;
+  const effective = getEffectiveSet();
   return c.prereqGroups.every(group =>
-    group.some(alt => completedSet.has(alt))
+    group.some(alt => effective.has(alt))
   );
 }
 
-// "Unlocked" = available AND has at least one prereq referencing a completed course.
-// Entry-level courses are always available but are NOT "unlocked" by selections.
+// "Unlocked" = prereqs all met via effective set, AND at least one prereq
+// is directly in completedSet (not just implied). This prevents random
+// courses from glowing due to transitive implied prereqs.
 function isCourseUnlocked(courseId) {
   if (completedSet.has(courseId)) return false;
   const c = courseMap[courseId];
   if (!c || !c.prereqGroups || c.prereqGroups.length === 0) return false;
-  return c.prereqGroups.every(group =>
+  const effective = getEffectiveSet();
+  // Don't glow if this course is already implicitly covered
+  if (effective.has(courseId)) return false;
+  // All prereq groups must be satisfied
+  const allMet = c.prereqGroups.every(group =>
+    group.some(alt => effective.has(alt))
+  );
+  if (!allMet) return false;
+  // At least one prereq must be directly completed (not just implied)
+  const hasDirectLink = c.prereqGroups.some(group =>
     group.some(alt => completedSet.has(alt))
   );
+  return hasDirectLink;
 }
 
 function getUnlockedCourses() {
@@ -996,50 +1014,6 @@ document.getElementById('zoom-out').addEventListener('click', () => {
 document.getElementById('zoom-fit').addEventListener('click', () => cy.fit(undefined, 40));
 
 cy.fit(undefined, 40);
-
-// ──────────────────────────────────────────────────────────
-//  SIDEBAR RESIZE
-// ──────────────────────────────────────────────────────────
-
-const resizeHandle = document.getElementById('resize-handle');
-const sidebar = document.getElementById('sidebar');
-const zoomControls = document.querySelector('.zoom-controls');
-const resizeOverlay = document.getElementById('resize-overlay');
-
-function updateZoomPosition() {
-  zoomControls.style.right = (sidebar.offsetWidth + 20) + 'px';
-}
-updateZoomPosition();
-
-let isResizing = false;
-resizeHandle.addEventListener('mousedown', (e) => {
-  isResizing = true;
-  resizeHandle.classList.add('active');
-  resizeOverlay.style.display = 'block';
-  document.body.style.userSelect = 'none';
-  e.preventDefault();
-});
-resizeHandle.addEventListener('dblclick', () => {
-  sidebar.style.width = '280px';
-  updateZoomPosition();
-  cy.resize();
-});
-document.addEventListener('mousemove', (e) => {
-  if (!isResizing) return;
-  const maxW = Math.floor(window.innerWidth * 0.5);
-  const newWidth = window.innerWidth - e.clientX;
-  const clamped = Math.min(maxW, Math.max(200, newWidth));
-  sidebar.style.width = clamped + 'px';
-  updateZoomPosition();
-});
-document.addEventListener('mouseup', () => {
-  if (!isResizing) return;
-  isResizing = false;
-  resizeHandle.classList.remove('active');
-  resizeOverlay.style.display = 'none';
-  document.body.style.userSelect = '';
-  cy.resize();
-});
 </script>
 </body>
 </html>
