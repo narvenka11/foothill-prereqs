@@ -85,6 +85,10 @@
   .resize-handle:hover, .resize-handle.active {
     background: #3b82f6;
   }
+  .resize-overlay {
+    position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    z-index: 9999; cursor: col-resize; display: none;
+  }
   .sidebar-header {
     padding: 14px 16px 10px; border-bottom: 1px solid #334155;
     display: flex; align-items: center; justify-content: space-between;
@@ -259,6 +263,7 @@
 </div>
 
 <div class="tooltip" id="tooltip"></div>
+<div class="resize-overlay" id="resize-overlay"></div>
 
 <div class="zoom-controls">
   <button class="zoom-btn" id="zoom-in" title="Zoom in">+</button>
@@ -820,10 +825,25 @@ function refreshSidebar(available) {
 
 function addCourse(id) {
   if (completedSet.has(id)) return;
-  // Track if prereqs were NOT met (bypassed via AP/exam/placement)
-  if (!isCourseAvailable(id) && !isEntryLevel(id)) {
+  const isBypassing = !isCourseAvailable(id) && !isEntryLevel(id);
+  if (isBypassing) {
     bypassedSet.add(id);
+    // Auto-bypass prereqs recursively — if you can skip to this course,
+    // you implicitly have credit for its prerequisites too.
+    const c = courseMap[id];
+    if (c && c.prereqGroups) {
+      for (const group of c.prereqGroups) {
+        // Pick the first alternative in each OR-group to auto-bypass
+        for (const alt of group) {
+          if (!completedSet.has(alt) && courseMap[alt]) {
+            addCourse(alt);  // recursive — will auto-bypass its prereqs too
+            break;           // only need one from each OR-group
+          }
+        }
+      }
+    }
   }
+  if (completedSet.has(id)) return;  // may have been added by recursion
   completedSet.add(id);
   pathOrder.push(id);
   refreshGraph();
@@ -994,6 +1014,7 @@ cy.fit(undefined, 40);
 const resizeHandle = document.getElementById('resize-handle');
 const sidebar = document.getElementById('sidebar');
 const zoomControls = document.querySelector('.zoom-controls');
+const resizeOverlay = document.getElementById('resize-overlay');
 
 function updateZoomPosition() {
   zoomControls.style.right = (sidebar.offsetWidth + 20) + 'px';
@@ -1004,7 +1025,7 @@ let isResizing = false;
 resizeHandle.addEventListener('mousedown', (e) => {
   isResizing = true;
   resizeHandle.classList.add('active');
-  document.body.style.cursor = 'col-resize';
+  resizeOverlay.style.display = 'block';
   document.body.style.userSelect = 'none';
   e.preventDefault();
 });
@@ -1019,7 +1040,7 @@ document.addEventListener('mouseup', () => {
   if (!isResizing) return;
   isResizing = false;
   resizeHandle.classList.remove('active');
-  document.body.style.cursor = '';
+  resizeOverlay.style.display = 'none';
   document.body.style.userSelect = '';
   cy.resize();
 });
