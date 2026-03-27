@@ -230,7 +230,7 @@
     <div class="sidebar-hint" id="sidebar-hint">
       Click any course to mark it as <strong style="color:#22d3ee">completed</strong>.
       Courses you can take next will glow.<br>
-      <strong style="color:#f472b6">Locked courses</strong> can also be clicked — they'll be marked as bypassed via AP/exam.<br>
+      Courses with <strong style="color:#f472b6">AP/exam bypass</strong> (🎓) can be selected directly without prereqs.<br>
       <span style="color:#475569">Right-click → open catalog page.</span>
     </div>
     <div class="path-stats" id="path-stats" style="display:none">
@@ -833,11 +833,10 @@ function removeCourse(id) {
     for (let i = pathOrder.length - 1; i >= 0; i--) {
       const cid = pathOrder[i];
       const c = courseMap[cid];
-      if (c.prereqGroups && c.prereqGroups.length > 0) {
+      if (c.prereqGroups && c.prereqGroups.length > 0 && !bypassedSet.has(cid)) {
         const met = c.prereqGroups.every(group => group.some(alt => completedSet.has(alt)));
         if (!met) {
           completedSet.delete(cid);
-          bypassedSet.delete(cid);
           pathOrder.splice(i, 1);
           changed = true;
         }
@@ -864,10 +863,13 @@ cy.on('tap', 'node', (e) => {
   const id = e.target.data('id');
   if (completedSet.has(id)) {
     removeCourse(id);
-  } else {
-    // Always allow adding — if prereqs not met, mark as bypassed (AP/exam/placement)
+  } else if (isCourseAvailable(id) || isEntryLevel(id)) {
+    addCourse(id);
+  } else if (courseMap[id]?.apBypass) {
+    // Only allow bypass for courses with a known AP/exam/placement alternative
     addCourse(id);
   }
+  // else: locked without AP bypass — do nothing
 });
 
 // Right-click → open catalog page
@@ -888,7 +890,8 @@ cy.on('mouseover', 'node', (e) => {
   const status = completedSet.has(id)
     ? (bypassedSet.has(id) ? '🟣 Added via AP/Exam bypass' : '✅ Completed')
     : isCourseAvailable(id) ? '🟡 Available — click to add'
-    : '🔒 Prereqs not met — click to bypass via AP/exam';
+    : courseMap[id]?.apBypass ? '🔒 Prereqs not met — click to bypass via AP/exam'
+    : '🔒 Prereqs not met';
 
   let html = `<h3 style="color:${d.bgColor}">${d.label}</h3>`;
   html += `<div style="color:#cbd5e1;margin-bottom:4px">${d.title}</div>`;
