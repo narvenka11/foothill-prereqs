@@ -73,8 +73,17 @@
 
   /* ── Sidebar: path builder ── */
   .sidebar {
-    width: 280px; background: #1e293b; border-left: 1px solid #334155;
+    width: 280px; min-width: 200px; max-width: 600px;
+    background: #1e293b; border-left: 1px solid #334155;
     display: flex; flex-direction: column; flex-shrink: 0; overflow: hidden;
+  }
+  .resize-handle {
+    width: 5px; cursor: col-resize; background: transparent;
+    flex-shrink: 0; position: relative; z-index: 200;
+    transition: background .15s;
+  }
+  .resize-handle:hover, .resize-handle.active {
+    background: #3b82f6;
   }
   .sidebar-header {
     padding: 14px 16px 10px; border-bottom: 1px solid #334155;
@@ -220,9 +229,10 @@
 
 <div class="main">
   <div id="cy"></div>
+  <div class="resize-handle" id="resize-handle"></div>
 
   <!-- Sidebar: path builder -->
-  <div class="sidebar">
+  <div class="sidebar" id="sidebar">
     <div class="sidebar-header">
       <h2><span class="emoji">🗺️</span> Path Builder</h2>
       <button class="reset-btn" id="reset-btn">Reset</button>
@@ -980,6 +990,43 @@ document.getElementById('zoom-out').addEventListener('click', () => {
 document.getElementById('zoom-fit').addEventListener('click', () => cy.fit(undefined, 40));
 
 cy.fit(undefined, 40);
+
+// ──────────────────────────────────────────────────────────
+//  SIDEBAR RESIZE
+// ──────────────────────────────────────────────────────────
+
+const resizeHandle = document.getElementById('resize-handle');
+const sidebar = document.getElementById('sidebar');
+const zoomControls = document.querySelector('.zoom-controls');
+
+function updateZoomPosition() {
+  zoomControls.style.right = (sidebar.offsetWidth + 20) + 'px';
+}
+updateZoomPosition();
+
+let isResizing = false;
+resizeHandle.addEventListener('mousedown', (e) => {
+  isResizing = true;
+  resizeHandle.classList.add('active');
+  document.body.style.cursor = 'col-resize';
+  document.body.style.userSelect = 'none';
+  e.preventDefault();
+});
+document.addEventListener('mousemove', (e) => {
+  if (!isResizing) return;
+  const newWidth = window.innerWidth - e.clientX;
+  const clamped = Math.min(600, Math.max(200, newWidth));
+  sidebar.style.width = clamped + 'px';
+  updateZoomPosition();
+});
+document.addEventListener('mouseup', () => {
+  if (!isResizing) return;
+  isResizing = false;
+  resizeHandle.classList.remove('active');
+  document.body.style.cursor = '';
+  document.body.style.userSelect = '';
+  cy.resize();
+});
 </script>
 </body>
 </html>
