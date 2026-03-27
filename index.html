@@ -225,7 +225,7 @@
   <!-- Sidebar: path builder -->
   <div class="sidebar" id="sidebar">
     <div class="sidebar-header">
-      <h2><span class="emoji">🗺️</span> Path Builder</h2>
+      <h2><span class="emoji">🗺️</span> Plan Builder</h2>
       <button class="reset-btn" id="reset-btn">Reset</button>
     </div>
     <div class="sidebar-hint" id="sidebar-hint">
@@ -513,7 +513,7 @@ const edges = [
 
 const nodeEls = courses.map(c => ({
   data: {
-    id: c.id, label: c.id, title: c.title, dept: c.dept, units: c.units,
+    id: c.id, label: `${c.id}\n${c.units}u`, title: c.title, dept: c.dept, units: c.units,
     prereqText: c.prereqText || 'None',
     coreqText: c.coreqText || '',
     advisoryText: c.advisoryText || '',
@@ -545,7 +545,7 @@ const cy = cytoscape({
         'border-color': 'data(borderColor)',
         'border-width': 2,
         'shape': 'roundrectangle',
-        'width': 'label', 'height': 34, 'padding': '14px',
+        'width': 'label', 'height': 44, 'padding': '14px',
         'text-wrap': 'wrap', 'text-max-width': '120px',
         'cursor': 'pointer',
         'transition-property': 'background-color, border-color, opacity, border-width',
