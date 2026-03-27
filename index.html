@@ -1,0 +1,979 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Foothill College – STEM Prerequisite Flow Chart (Nikhil's Dual Enrollment Planner)</title>
+<script src="https://unpkg.com/cytoscape@3.28.1/dist/cytoscape.min.js"></script>
+<script src="https://unpkg.com/dagre@0.8.5/dist/dagre.min.js"></script>
+<script src="https://unpkg.com/cytoscape-dagre@2.5.0/cytoscape-dagre.js"></script>
+<style>
+  :root {
+    --math-bg: #3b82f6; --math-border: #1d4ed8;
+    --phys-bg: #f59e0b; --phys-border: #b45309;
+    --chem-bg: #10b981; --chem-border: #047857;
+    --bio-bg:  #ef4444; --bio-border:  #b91c1c;
+    --cs-bg:   #8b5cf6; --cs-border:   #6d28d9;
+    --stat-bg: #06b6d4; --stat-border: #0e7490;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: #0f172a; color: #e2e8f0;
+    display: flex; flex-direction: column; height: 100vh; overflow: hidden;
+  }
+
+  /* ── Header ── */
+  header {
+    background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+    border-bottom: 1px solid #334155;
+    padding: 14px 24px;
+    display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;
+    flex-shrink: 0;
+  }
+  header h1 { font-size: 1.3rem; font-weight: 700; }
+  header h1 span { color: #60a5fa; }
+  .hdr-right { text-align: right; }
+  .hdr-right .name { font-size: 1rem; font-weight: 600; color: #60a5fa; }
+  .hdr-right .sub  { font-size: .7rem; color: #64748b; }
+
+  /* ── Controls bar ── */
+  .controls {
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    padding: 8px 24px; background: #1e293b; border-bottom: 1px solid #334155;
+    flex-shrink: 0;
+  }
+  .legend { display: flex; gap: 10px; flex-wrap: wrap; }
+  .legend-item {
+    display: flex; align-items: center; gap: 5px; font-size: .75rem;
+    cursor: pointer; padding: 3px 8px; border-radius: 6px; transition: background .2s;
+    user-select: none;
+  }
+  .legend-item:hover { background: #334155; }
+  .legend-item.dimmed { opacity: .3; }
+  .legend-dot { width: 12px; height: 12px; border-radius: 3px; flex-shrink: 0; }
+
+  .edge-legend { display: flex; gap: 14px; margin-left: auto; }
+  .edge-legend-item { display: flex; align-items: center; gap: 5px; font-size: .7rem; color: #94a3b8; }
+  .edge-legend-line { width: 28px; height: 0; border-top: 2px solid #64748b; }
+  .edge-legend-line.dashed { border-top-style: dashed; border-top-color: #10b981; }
+  .edge-legend-line.dotted { border-top-style: dotted; border-top-color: #475569; }
+
+  .search-box {
+    padding: 5px 10px; border-radius: 6px; border: 1px solid #475569;
+    background: #0f172a; color: #e2e8f0; font-size: .8rem; width: 180px; outline: none;
+  }
+  .search-box::placeholder { color: #64748b; }
+  .search-box:focus { border-color: #60a5fa; }
+
+  /* ── Main area: graph + sidebar ── */
+  .main { display: flex; flex: 1; min-height: 0; }
+
+  #cy { flex: 1; background: #0f172a; }
+
+  /* ── Sidebar: path builder ── */
+  .sidebar {
+    width: 280px; background: #1e293b; border-left: 1px solid #334155;
+    display: flex; flex-direction: column; flex-shrink: 0; overflow: hidden;
+  }
+  .sidebar-header {
+    padding: 14px 16px 10px; border-bottom: 1px solid #334155;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .sidebar-header h2 { font-size: .9rem; font-weight: 700; }
+  .sidebar-header h2 .emoji { margin-right: 4px; }
+  .reset-btn {
+    font-size: .7rem; padding: 4px 10px; border-radius: 5px;
+    border: 1px solid #475569; background: transparent; color: #94a3b8;
+    cursor: pointer; transition: all .2s;
+  }
+  .reset-btn:hover { background: #ef4444; color: #fff; border-color: #ef4444; }
+
+  .sidebar-hint {
+    padding: 10px 16px; font-size: .72rem; color: #64748b; line-height: 1.5;
+    border-bottom: 1px solid #334155;
+  }
+
+  .path-stats {
+    padding: 10px 16px; font-size: .75rem; color: #94a3b8; border-bottom: 1px solid #334155;
+    display: flex; gap: 16px;
+  }
+  .path-stats .stat-val { font-weight: 700; color: #e2e8f0; }
+  .path-stats .stat-val.units-val { color: #60a5fa; }
+
+  .path-list {
+    flex: 1; overflow-y: auto; padding: 8px 0;
+  }
+  .path-list::-webkit-scrollbar { width: 5px; }
+  .path-list::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+
+  .path-item {
+    display: flex; align-items: center; gap: 8px;
+    padding: 7px 16px; font-size: .78rem; cursor: pointer; transition: background .15s;
+  }
+  .path-item:hover { background: #334155; }
+  .path-item .pip {
+    width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0;
+  }
+  .path-item .code { font-weight: 600; min-width: 80px; }
+  .path-item .title { color: #94a3b8; font-size: .72rem; white-space: nowrap;
+    overflow: hidden; text-overflow: ellipsis; }
+  .path-item .remove {
+    margin-left: auto; color: #64748b; font-size: .8rem; padding: 0 4px;
+    cursor: pointer; opacity: 0; transition: opacity .15s;
+  }
+  .path-item:hover .remove { opacity: 1; }
+  .path-item .remove:hover { color: #ef4444; }
+
+  .available-section {
+    border-top: 1px solid #334155; padding: 10px 16px 6px;
+  }
+  .available-section h3 {
+    font-size: .75rem; color: #22d3ee; font-weight: 600; margin-bottom: 6px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .available-section h3 .pulse {
+    width: 8px; height: 8px; border-radius: 50%; background: #22d3ee;
+    animation: pulse 1.8s infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: .3; }
+  }
+  .available-list {
+    max-height: 200px; overflow-y: auto; padding-bottom: 8px;
+  }
+  .available-list::-webkit-scrollbar { width: 5px; }
+  .available-list::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+  .avail-item {
+    display: flex; align-items: center; gap: 8px;
+    padding: 5px 0; font-size: .73rem; cursor: pointer; transition: color .15s;
+  }
+  .avail-item:hover { color: #22d3ee; }
+  .avail-item .pip { width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0; }
+
+  .catalog-link {
+    display: block; text-align: center; padding: 10px;
+    border-top: 1px solid #334155; font-size: .72rem; color: #60a5fa;
+    text-decoration: none; transition: color .15s;
+  }
+  .catalog-link:hover { color: #93c5fd; }
+
+  /* ── Tooltip ── */
+  .tooltip {
+    position: fixed; pointer-events: none; z-index: 1000;
+    background: #1e293b; border: 1px solid #475569; border-radius: 10px;
+    padding: 12px 16px; max-width: 320px;
+    box-shadow: 0 8px 30px rgba(0,0,0,.5); font-size: .8rem; line-height: 1.5;
+    display: none;
+  }
+  .tooltip h3 { font-size: .9rem; margin-bottom: 4px; }
+  .tooltip .units { color: #60a5fa; font-weight: 600; }
+  .tooltip .prereq-label { color: #f59e0b; font-weight: 600; margin-top: 4px; display: block; }
+  .tooltip .coreq-label  { color: #10b981; font-weight: 600; margin-top: 4px; display: block; }
+  .tooltip .advisory-label { color: #94a3b8; font-weight: 600; margin-top: 4px; display: block; }
+  .tooltip .tip-actions {
+    margin-top: 8px; padding-top: 6px; border-top: 1px solid #334155;
+    font-size: .7rem; color: #64748b;
+  }
+
+  /* ── Zoom controls ── */
+  .zoom-controls {
+    position: absolute; bottom: 20px; right: 300px; display: flex; flex-direction: column; gap: 5px; z-index: 100;
+  }
+  .zoom-btn {
+    width: 36px; height: 36px; border-radius: 8px; border: 1px solid #475569;
+    background: #1e293b; color: #e2e8f0; font-size: 1.1rem; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; transition: background .2s;
+  }
+  .zoom-btn:hover { background: #334155; }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>🦉 Foothill College <span>STEM Prerequisite Flow</span></h1>
+  </div>
+  <div class="hdr-right">
+    <div class="name">Foothill · Dual Enrollment</div>
+    <div class="sub">2025-2026 Catalog · Click courses to build your path</div>
+  </div>
+</header>
+
+<div class="controls">
+  <input class="search-box" id="search" type="text" placeholder="🔍  Search courses…" />
+  <div class="legend" id="legend">
+    <div class="legend-item" data-dept="math"><div class="legend-dot" style="background:var(--math-bg)"></div>Math</div>
+    <div class="legend-item" data-dept="phys"><div class="legend-dot" style="background:var(--phys-bg)"></div>Physics</div>
+    <div class="legend-item" data-dept="chem"><div class="legend-dot" style="background:var(--chem-bg)"></div>Chemistry</div>
+    <div class="legend-item" data-dept="bio"><div class="legend-dot" style="background:var(--bio-bg)"></div>Biology</div>
+    <div class="legend-item" data-dept="cs"><div class="legend-dot" style="background:var(--cs-bg)"></div>Computer Science</div>
+    <div class="legend-item" data-dept="stat"><div class="legend-dot" style="background:var(--stat-bg)"></div>Statistics</div>
+  </div>
+  <div class="edge-legend">
+    <div class="edge-legend-item"><div class="edge-legend-line"></div> Prereq</div>
+    <div class="edge-legend-item"><div class="edge-legend-line dashed"></div> Coreq</div>
+    <div class="edge-legend-item"><div class="edge-legend-line dotted"></div> Advisory</div>
+  </div>
+</div>
+
+<div class="main">
+  <div id="cy"></div>
+
+  <!-- Sidebar: path builder -->
+  <div class="sidebar">
+    <div class="sidebar-header">
+      <h2><span class="emoji">🗺️</span> Path Builder</h2>
+      <button class="reset-btn" id="reset-btn">Reset</button>
+    </div>
+    <div class="sidebar-hint" id="sidebar-hint">
+      Click any course to mark it as <strong style="color:#22d3ee">completed</strong>.
+      Courses you can take next will glow.<br>
+      <strong style="color:#f472b6">Locked courses</strong> can also be clicked — they'll be marked as bypassed via AP/exam.<br>
+      <span style="color:#475569">Right-click → open catalog page.</span>
+    </div>
+    <div class="path-stats" id="path-stats" style="display:none">
+      <div>Courses: <span class="stat-val" id="stat-count">0</span></div>
+      <div>Units: <span class="stat-val units-val" id="stat-units">0</span></div>
+    </div>
+    <div class="path-list" id="path-list"></div>
+    <div class="available-section" id="avail-section" style="display:none">
+      <h3><span class="pulse"></span> Now Available</h3>
+      <div class="available-list" id="avail-list"></div>
+    </div>
+    <a class="catalog-link" href="https://catalog.foothill.edu/courses-az/" target="_blank">
+      📖 Full Foothill College Catalog →
+    </a>
+  </div>
+</div>
+
+<div class="tooltip" id="tooltip"></div>
+
+<div class="zoom-controls">
+  <button class="zoom-btn" id="zoom-in" title="Zoom in">+</button>
+  <button class="zoom-btn" id="zoom-out" title="Zoom out">−</button>
+  <button class="zoom-btn" id="zoom-fit" title="Fit to screen">⊡</button>
+</div>
+
+<script>
+// ──────────────────────────────────────────────────────────
+//  DATA
+// ──────────────────────────────────────────────────────────
+
+const catalogUrl = (code) =>
+  `https://catalog.foothill.edu/search/?P=${encodeURIComponent(code)}`;
+
+const COLORS = {
+  math: { bg: '#3b82f6', border: '#1d4ed8', text: '#fff' },
+  phys: { bg: '#f59e0b', border: '#b45309', text: '#fff' },
+  chem: { bg: '#10b981', border: '#047857', text: '#fff' },
+  bio:  { bg: '#ef4444', border: '#b91c1c', text: '#fff' },
+  cs:   { bg: '#8b5cf6', border: '#6d28d9', text: '#fff' },
+  stat: { bg: '#06b6d4', border: '#0e7490', text: '#fff' },
+};
+
+// prereqGroups: array of OR-groups; ALL groups must be satisfied (AND).
+//   e.g. [['A','B'], ['C']]  →  (A OR B) AND C
+//   Empty / absent = no Foothill-course prerequisite (entry-level).
+const courses = [
+  // ─── MATH ───
+  { id:'MATH 48A', dept:'math', units:5, title:'Precalculus I',
+    prereqText:'Intermediate Algebra or equiv', prereqGroups:[] },
+  { id:'MATH 48B', dept:'math', units:5, title:'Precalculus II',
+    prereqText:'MATH 48A', prereqGroups:[['MATH 48A']] },
+  { id:'MATH 48C', dept:'math', units:5, title:'Precalculus III (Trigonometry)',
+    prereqText:'MATH 48B', prereqGroups:[['MATH 48B']] },
+  { id:'MATH 47', dept:'math', units:6, title:'Precalculus & Trig (combined)',
+    prereqText:'Intermediate Algebra or equiv', prereqGroups:[] },
+  { id:'MATH 1A', dept:'math', units:5, title:'Calculus I',
+    prereqText:'MATH 47 or MATH 48C', prereqGroups:[['MATH 47','MATH 48C']],
+    apBypass:'AP Calculus AB (3+) or AP Calculus BC subscore (3+)' },
+  { id:'MATH 1B', dept:'math', units:5, title:'Calculus II',
+    prereqText:'MATH 1A', prereqGroups:[['MATH 1A']],
+    apBypass:'AP Calculus BC (3+)' },
+  { id:'MATH 1C', dept:'math', units:5, title:'Multivariable Calculus (Calc III)',
+    prereqText:'MATH 1B', prereqGroups:[['MATH 1B']] },
+  { id:'MATH 1D', dept:'math', units:5, title:'Series & Sequences (Calc IV)',
+    prereqText:'MATH 1C', prereqGroups:[['MATH 1C']] },
+  { id:'MATH 2A', dept:'math', units:5, title:'Differential Equations',
+    prereqText:'MATH 1C', prereqGroups:[['MATH 1C']] },
+  { id:'MATH 2B', dept:'math', units:5, title:'Linear Algebra',
+    prereqText:'MATH 1C', prereqGroups:[['MATH 1C']] },
+  { id:'MATH 22', dept:'math', units:5, title:'Discrete Mathematics (= C S 18)',
+    prereqText:'(C S 1A / 2A / 3A) AND (MATH 47 / 48C)',
+    prereqGroups:[['C S 1A','C S 2A','C S 3A'],['MATH 47','MATH 48C']] },
+  { id:'MATH 12', dept:'math', units:5, title:'Finite Mathematics',
+    prereqText:'Intermediate Algebra', prereqGroups:[] },
+  { id:'STAT C1000', dept:'stat', units:5, title:'Elementary Statistics',
+    prereqText:'Intermediate Algebra placement', prereqGroups:[],
+    apBypass:'AP Statistics (3+)' },
+
+  // ─── PHYSICS ───
+  { id:'PHYS 2A', dept:'phys', units:5, title:'General Physics I (non-calc)',
+    prereqText:'MATH 48C', prereqGroups:[['MATH 48C']],
+    apBypass:'AP Physics C: Mechanics (3)' },
+  { id:'PHYS 2B', dept:'phys', units:5, title:'General Physics II (non-calc)',
+    prereqText:'PHYS 2A', prereqGroups:[['PHYS 2A']] },
+  { id:'PHYS 2C', dept:'phys', units:5, title:'General Physics III (non-calc)',
+    prereqText:'PHYS 2B', prereqGroups:[['PHYS 2B']] },
+  { id:'PHYS 4A', dept:'phys', units:6, title:'Engineering Physics I (Mechanics)',
+    prereqText:'Coreq: MATH 1B', coreqText:'MATH 1B',
+    prereqGroups:[['MATH 1A']],
+    apBypass:'AP Physics C: Mechanics (4-5)' },
+  { id:'PHYS 4B', dept:'phys', units:6, title:'Engineering Physics II (E&M)',
+    prereqText:'PHYS 4A; Coreq: MATH 1C', coreqText:'MATH 1C',
+    prereqGroups:[['PHYS 4A'],['MATH 1B']],
+    apBypass:'AP Physics C: E&M (4-5)' },
+  { id:'PHYS 4C', dept:'phys', units:6, title:'Engineering Physics III (Waves/Thermo)',
+    prereqText:'MATH 1C and PHYS 4A',
+    prereqGroups:[['MATH 1C'],['PHYS 4A']] },
+  { id:'PHYS 4D', dept:'phys', units:6, title:'Engineering Physics IV (Modern)',
+    prereqText:'PHYS 4C; Coreq: MATH 2A', coreqText:'MATH 2A',
+    prereqGroups:[['PHYS 4C']] },
+
+  // ─── CHEMISTRY ───
+  { id:'CHEM 25', dept:'chem', units:5, title:'Introduction to Chemistry',
+    prereqText:'Intermediate Algebra', prereqGroups:[] },
+  { id:'CHEM 30A', dept:'chem', units:5, title:'Intro Gen/Org/Biochem I',
+    prereqText:'Elementary Algebra', prereqGroups:[] },
+  { id:'CHEM 30B', dept:'chem', units:5, title:'Intro Gen/Org/Biochem II',
+    prereqText:'CHEM 30A', prereqGroups:[['CHEM 30A']] },
+  { id:'CHEM 1A', dept:'chem', units:5, title:'General Chemistry I',
+    prereqText:'Placement test or CHEM 25; Int. Algebra',
+    advisoryText:'MATH 48A recommended',
+    prereqGroups:[['CHEM 25']],
+    apBypass:'AP Chemistry (4-5)' },
+  { id:'CHEM 1B', dept:'chem', units:5, title:'General Chemistry II',
+    prereqText:'CHEM 1A', advisoryText:'MATH 48B recommended',
+    prereqGroups:[['CHEM 1A']] },
+  { id:'CHEM 1C', dept:'chem', units:5, title:'General Chemistry III',
+    prereqText:'CHEM 1B', prereqGroups:[['CHEM 1B']] },
+  { id:'CHEM 12A', dept:'chem', units:4, title:'Organic Chemistry I',
+    prereqText:'CHEM 1C', prereqGroups:[['CHEM 1C']] },
+  { id:'CHEM 12AL', dept:'chem', units:2, title:'Organic Chemistry I Lab',
+    prereqText:'Coreq: CHEM 12A', coreqText:'CHEM 12A',
+    prereqGroups:[['CHEM 12A']] },
+  { id:'CHEM 12B', dept:'chem', units:4, title:'Organic Chemistry II',
+    prereqText:'CHEM 12A and CHEM 12AL',
+    prereqGroups:[['CHEM 12A'],['CHEM 12AL']] },
+  { id:'CHEM 12BL', dept:'chem', units:2, title:'Organic Chemistry II Lab',
+    prereqText:'CHEM 12AL; Coreq: CHEM 12B',
+    prereqGroups:[['CHEM 12AL']] },
+  { id:'CHEM 12C', dept:'chem', units:4, title:'Organic Chemistry III',
+    prereqText:'CHEM 12B and CHEM 12BL',
+    prereqGroups:[['CHEM 12B'],['CHEM 12BL']] },
+  { id:'CHEM 12CL', dept:'chem', units:2, title:'Organic Chemistry III Lab',
+    prereqText:'CHEM 12BL; Coreq: CHEM 12C',
+    prereqGroups:[['CHEM 12BL']] },
+
+  // ─── BIOLOGY ───
+  { id:'BIOL 1A', dept:'bio', units:6, title:'General Biology I (Mol & Cell)',
+    prereqText:'CHEM 1A', prereqGroups:[['CHEM 1A']] },
+  { id:'BIOL 1B', dept:'bio', units:6, title:'General Biology II (Ecology/Evo)',
+    prereqText:'BIOL 1A', prereqGroups:[['BIOL 1A']] },
+  { id:'BIOL 1C', dept:'bio', units:6, title:'General Biology III (Organismal)',
+    prereqText:'BIOL 1B', prereqGroups:[['BIOL 1B']] },
+  { id:'BIOL 1D', dept:'bio', units:4, title:'Genetics',
+    prereqText:'BIOL 1A', prereqGroups:[['BIOL 1A']] },
+  { id:'BIOL 41', dept:'bio', units:6, title:'Human Anatomy & Physiology',
+    prereqText:'CHEM 1A or CHEM 25 or CHEM 30A',
+    prereqGroups:[['CHEM 1A','CHEM 25','CHEM 30A']] },
+  { id:'BIOL 40A', dept:'bio', units:5, title:'Human Anatomy',
+    prereqText:'Advisory: BIOL 14, CHEM', prereqGroups:[] },
+  { id:'BIOL 40B', dept:'bio', units:5, title:'Human Physiology I',
+    prereqText:'BIOL 40A', prereqGroups:[['BIOL 40A']] },
+  { id:'BIOL 40C', dept:'bio', units:5, title:'Human Physiology II',
+    prereqText:'BIOL 40A', prereqGroups:[['BIOL 40A']] },
+  { id:'BIOL 10', dept:'bio', units:5, title:'Introduction to Biology (w/ Lab)',
+    prereqText:'None', prereqGroups:[] },
+  { id:'BIOL 45', dept:'bio', units:4, title:'Biotechnology',
+    prereqText:'BIOL 1A or BIOL 40A',
+    prereqGroups:[['BIOL 1A','BIOL 40A']] },
+
+  // ─── CS ───
+  { id:'C S 1A', dept:'cs', units:4.5, title:'OOP in Java',
+    prereqText:'Advisory: Int. Algebra', prereqGroups:[] },
+  { id:'C S 1B', dept:'cs', units:4.5, title:'Intermediate Java',
+    prereqText:'C S 1A', prereqGroups:[['C S 1A']] },
+  { id:'C S 1C', dept:'cs', units:4.5, title:'Advanced Java / Data Structures',
+    prereqText:'C S 1B', prereqGroups:[['C S 1B']] },
+  { id:'C S 2A', dept:'cs', units:4.5, title:'OOP in C++',
+    prereqText:'Advisory: Int. Algebra', prereqGroups:[] },
+  { id:'C S 2B', dept:'cs', units:4.5, title:'Intermediate C++',
+    prereqText:'C S 2A', prereqGroups:[['C S 2A']] },
+  { id:'C S 2C', dept:'cs', units:4.5, title:'Advanced C++ / Data Structures',
+    prereqText:'C S 2B', prereqGroups:[['C S 2B']] },
+  { id:'C S 3A', dept:'cs', units:4.5, title:'OOP in Python',
+    prereqText:'Advisory: Int. Algebra', prereqGroups:[] },
+  { id:'C S 3B', dept:'cs', units:4.5, title:'Intermediate Python',
+    prereqText:'C S 3A', prereqGroups:[['C S 3A']] },
+  { id:'C S 3C', dept:'cs', units:4.5, title:'Advanced Python / Data Structures',
+    prereqText:'C S 3B', prereqGroups:[['C S 3B']] },
+  { id:'C S 10', dept:'cs', units:4.5, title:'Computer Architecture',
+    prereqText:'C S 1A or C S 2A or C S 3A',
+    prereqGroups:[['C S 1A','C S 2A','C S 3A']] },
+  { id:'C S 11A', dept:'cs', units:4.5, title:'AI Programming (Python)',
+    prereqText:'C S 3A', prereqGroups:[['C S 3A']] },
+  { id:'C S 11B', dept:'cs', units:4.5, title:'Machine Learning',
+    prereqText:'C S 3A and C S 8A', prereqGroups:[['C S 3A'],['C S 8A']] },
+  { id:'C S 12A', dept:'cs', units:4.5, title:'Cloud Computing I',
+    prereqText:'C S 3A', prereqGroups:[['C S 3A']] },
+  { id:'C S 12B', dept:'cs', units:4.5, title:'Cloud Computing II',
+    prereqText:'C S 12A', prereqGroups:[['C S 12A']] },
+  { id:'C S 8A', dept:'cs', units:4.5, title:'Intro to Data Science',
+    prereqText:'Advisory: programming / stats', prereqGroups:[] },
+  { id:'C S 30A', dept:'cs', units:4.5, title:'Intro to Linux/Unix',
+    prereqText:'None', prereqGroups:[] },
+  { id:'C S 49', dept:'cs', units:4.5, title:'Intro to Computer Science',
+    prereqText:'Advisory: Int. Algebra', prereqGroups:[] },
+];
+
+// Build lookup
+const courseMap = {};
+courses.forEach(c => { courseMap[c.id] = c; });
+
+// ── Graph edges (for display) ──
+const edges = [
+  // Math
+  { from:'MATH 48A', to:'MATH 48B', type:'prereq' },
+  { from:'MATH 48B', to:'MATH 48C', type:'prereq' },
+  { from:'MATH 48C', to:'MATH 1A', type:'prereq' },
+  { from:'MATH 47',  to:'MATH 1A', type:'prereq' },
+  { from:'MATH 1A', to:'MATH 1B', type:'prereq' },
+  { from:'MATH 1B', to:'MATH 1C', type:'prereq' },
+  { from:'MATH 1C', to:'MATH 1D', type:'prereq' },
+  { from:'MATH 1C', to:'MATH 2A', type:'prereq' },
+  { from:'MATH 1C', to:'MATH 2B', type:'prereq' },
+  { from:'MATH 48C', to:'MATH 22', type:'prereq' },
+  { from:'MATH 47',  to:'MATH 22', type:'prereq' },
+  // Physics non-calc
+  { from:'MATH 48C', to:'PHYS 2A', type:'prereq' },
+  { from:'PHYS 2A',  to:'PHYS 2B', type:'prereq' },
+  { from:'PHYS 2B',  to:'PHYS 2C', type:'prereq' },
+  // Physics calc-based
+  { from:'MATH 1A',  to:'PHYS 4A', type:'prereq' },
+  { from:'MATH 1B',  to:'PHYS 4A', type:'coreq' },
+  { from:'PHYS 4A',  to:'PHYS 4B', type:'prereq' },
+  { from:'MATH 1B',  to:'PHYS 4B', type:'prereq' },
+  { from:'MATH 1C',  to:'PHYS 4B', type:'coreq' },
+  { from:'MATH 1C',  to:'PHYS 4C', type:'prereq' },
+  { from:'PHYS 4A',  to:'PHYS 4C', type:'prereq' },
+  { from:'PHYS 4C',  to:'PHYS 4D', type:'prereq' },
+  { from:'MATH 2A',  to:'PHYS 4D', type:'coreq' },
+  // Chemistry
+  { from:'CHEM 25',  to:'CHEM 1A', type:'prereq' },
+  { from:'CHEM 30A', to:'CHEM 30B', type:'prereq' },
+  { from:'CHEM 1A',  to:'CHEM 1B', type:'prereq' },
+  { from:'CHEM 1B',  to:'CHEM 1C', type:'prereq' },
+  { from:'MATH 48A', to:'CHEM 1A', type:'advisory' },
+  { from:'MATH 48B', to:'CHEM 1B', type:'advisory' },
+  { from:'CHEM 1C',  to:'CHEM 12A', type:'prereq' },
+  { from:'CHEM 12A', to:'CHEM 12AL', type:'coreq' },
+  { from:'CHEM 12A', to:'CHEM 12B', type:'prereq' },
+  { from:'CHEM 12AL',to:'CHEM 12B', type:'prereq' },
+  { from:'CHEM 12AL',to:'CHEM 12BL', type:'prereq' },
+  { from:'CHEM 12B', to:'CHEM 12BL', type:'coreq' },
+  { from:'CHEM 12B', to:'CHEM 12C', type:'prereq' },
+  { from:'CHEM 12BL',to:'CHEM 12C', type:'prereq' },
+  { from:'CHEM 12BL',to:'CHEM 12CL', type:'prereq' },
+  { from:'CHEM 12C', to:'CHEM 12CL', type:'coreq' },
+  // Biology
+  { from:'CHEM 1A',  to:'BIOL 1A', type:'prereq' },
+  { from:'BIOL 1A',  to:'BIOL 1B', type:'prereq' },
+  { from:'BIOL 1B',  to:'BIOL 1C', type:'prereq' },
+  { from:'BIOL 1A',  to:'BIOL 1D', type:'prereq' },
+  { from:'BIOL 1A',  to:'BIOL 45', type:'prereq' },
+  { from:'BIOL 40A', to:'BIOL 45', type:'prereq' },
+  { from:'CHEM 1A',  to:'BIOL 41', type:'prereq' },
+  { from:'CHEM 25',  to:'BIOL 41', type:'prereq' },
+  { from:'CHEM 30A', to:'BIOL 41', type:'prereq' },
+  { from:'BIOL 40A', to:'BIOL 40B', type:'prereq' },
+  { from:'BIOL 40A', to:'BIOL 40C', type:'prereq' },
+  // CS
+  { from:'C S 1A', to:'C S 1B', type:'prereq' },
+  { from:'C S 1B', to:'C S 1C', type:'prereq' },
+  { from:'C S 2A', to:'C S 2B', type:'prereq' },
+  { from:'C S 2B', to:'C S 2C', type:'prereq' },
+  { from:'C S 3A', to:'C S 3B', type:'prereq' },
+  { from:'C S 3B', to:'C S 3C', type:'prereq' },
+  { from:'C S 1A', to:'MATH 22', type:'prereq' },
+  { from:'C S 1A', to:'C S 10', type:'prereq' },
+  { from:'C S 3A', to:'C S 10', type:'prereq' },
+  { from:'C S 3A', to:'C S 11A', type:'prereq' },
+  { from:'C S 3A', to:'C S 11B', type:'prereq' },
+  { from:'C S 8A', to:'C S 11B', type:'prereq' },
+  { from:'C S 3A', to:'C S 12A', type:'prereq' },
+  { from:'C S 12A',to:'C S 12B', type:'prereq' },
+];
+
+// ──────────────────────────────────────────────────────────
+//  CYTOSCAPE SETUP
+// ──────────────────────────────────────────────────────────
+
+const nodeEls = courses.map(c => ({
+  data: {
+    id: c.id, label: c.id, title: c.title, dept: c.dept, units: c.units,
+    prereqText: c.prereqText || 'None',
+    coreqText: c.coreqText || '',
+    advisoryText: c.advisoryText || '',
+    apBypass: c.apBypass || '',
+    url: catalogUrl(c.id),
+    bgColor: COLORS[c.dept].bg,
+    borderColor: COLORS[c.dept].border,
+    textColor: COLORS[c.dept].text,
+  }
+}));
+
+const edgeEls = edges.map((e, i) => ({
+  data: { id: `e${i}`, source: e.from, target: e.to, edgeType: e.type }
+}));
+
+const cy = cytoscape({
+  container: document.getElementById('cy'),
+  elements: [...nodeEls, ...edgeEls],
+  style: [
+    {
+      selector: 'node',
+      style: {
+        'label': 'data(label)',
+        'text-valign': 'center', 'text-halign': 'center',
+        'font-size': '11px', 'font-weight': '600',
+        'font-family': '"Segoe UI", system-ui, sans-serif',
+        'color': 'data(textColor)',
+        'background-color': 'data(bgColor)',
+        'border-color': 'data(borderColor)',
+        'border-width': 2,
+        'shape': 'roundrectangle',
+        'width': 'label', 'height': 34, 'padding': '14px',
+        'text-wrap': 'wrap', 'text-max-width': '120px',
+        'cursor': 'pointer',
+        'transition-property': 'background-color, border-color, opacity, border-width',
+        'transition-duration': '0.15s',
+      }
+    },
+    { selector: 'node:active', style: { 'overlay-opacity': 0.08 } },
+    // Edge styles
+    {
+      selector: 'edge[edgeType="prereq"]',
+      style: {
+        'width': 2, 'line-color': '#64748b', 'target-arrow-color': '#64748b',
+        'target-arrow-shape': 'triangle', 'arrow-scale': 1.1,
+        'curve-style': 'bezier', 'line-style': 'solid', 'opacity': 0.6,
+      }
+    },
+    {
+      selector: 'edge[edgeType="coreq"]',
+      style: {
+        'width': 2, 'line-color': '#10b981', 'target-arrow-color': '#10b981',
+        'target-arrow-shape': 'triangle', 'arrow-scale': 1.1,
+        'curve-style': 'bezier', 'line-style': 'dashed',
+        'line-dash-pattern': [8, 4], 'opacity': 0.55,
+      }
+    },
+    {
+      selector: 'edge[edgeType="advisory"]',
+      style: {
+        'width': 1.5, 'line-color': '#475569', 'target-arrow-color': '#475569',
+        'target-arrow-shape': 'triangle', 'arrow-scale': 0.9,
+        'curve-style': 'bezier', 'line-style': 'dotted',
+        'line-dash-pattern': [3, 5], 'opacity': 0.35,
+      }
+    },
+    // ── Path-builder states ──
+    {
+      selector: 'node.completed',
+      style: {
+        'border-width': 4, 'border-color': '#22d3ee',
+        'background-opacity': 1, 'z-index': 50,
+      }
+    },
+    {
+      selector: 'node.available',
+      style: {
+        'border-width': 3.5, 'border-color': '#facc15',
+        'border-style': 'double',
+        'z-index': 40,
+      }
+    },
+    {
+      selector: 'node.bypassed',
+      style: {
+        'border-width': 4, 'border-color': '#f472b6',
+        'border-style': 'dashed',
+        'z-index': 50,
+      }
+    },
+    {
+      selector: 'node.locked',
+      style: { 'opacity': 0.18 }
+    },
+    {
+      selector: 'edge.active-edge',
+      style: {
+        'line-color': '#22d3ee', 'target-arrow-color': '#22d3ee',
+        'width': 2.5, 'opacity': 0.9, 'z-index': 50,
+      }
+    },
+    {
+      selector: 'edge.avail-edge',
+      style: {
+        'line-color': '#facc15', 'target-arrow-color': '#facc15',
+        'width': 2, 'opacity': 0.7, 'z-index': 40,
+      }
+    },
+    {
+      selector: 'node.entry-level',
+      style: { 'opacity': 0.3 }
+    },
+    {
+      selector: 'edge.locked',
+      style: { 'opacity': 0.06 }
+    },
+    // Search
+    {
+      selector: 'node.search-match',
+      style: { 'border-width': 4, 'border-color': '#f0abfc' }
+    },
+    {
+      selector: 'node.search-dim',
+      style: { 'opacity': 0.12 }
+    },
+    {
+      selector: 'edge.search-dim',
+      style: { 'opacity': 0.04 }
+    },
+  ],
+  layout: {
+    name: 'dagre',
+    rankDir: 'LR',
+    nodeSep: 40,
+    rankSep: 80,
+    edgeSep: 20,
+    padding: 40,
+    animate: false,
+  },
+  minZoom: 0.2,
+  maxZoom: 3,
+  wheelSensitivity: 0.3,
+  autoungrabify: false,  // nodes are draggable
+  boxSelectionEnabled: false,
+});
+
+// ──────────────────────────────────────────────────────────
+//  PATH BUILDER STATE
+// ──────────────────────────────────────────────────────────
+
+const completedSet = new Set();   // course IDs the user has "taken"
+const bypassedSet = new Set();   // courses added without prereqs met (AP/exam)
+const pathOrder = [];             // ordered list for sidebar
+
+function isEntryLevel(courseId) {
+  const c = courseMap[courseId];
+  return !c || !c.prereqGroups || c.prereqGroups.length === 0;
+}
+
+function isCourseAvailable(courseId) {
+  if (completedSet.has(courseId)) return false;
+  const c = courseMap[courseId];
+  if (!c || !c.prereqGroups || c.prereqGroups.length === 0) return true;
+  return c.prereqGroups.every(group =>
+    group.some(alt => completedSet.has(alt))
+  );
+}
+
+// "Unlocked" = available AND has at least one prereq referencing a completed course.
+// Entry-level courses are always available but are NOT "unlocked" by selections.
+function isCourseUnlocked(courseId) {
+  if (completedSet.has(courseId)) return false;
+  const c = courseMap[courseId];
+  if (!c || !c.prereqGroups || c.prereqGroups.length === 0) return false;
+  return c.prereqGroups.every(group =>
+    group.some(alt => completedSet.has(alt))
+  );
+}
+
+function getUnlockedCourses() {
+  return courses.filter(c => isCourseUnlocked(c.id));
+}
+
+function refreshGraph() {
+  const unlocked = new Set(getUnlockedCourses().map(c => c.id));
+
+  // Reset classes
+  cy.elements().removeClass('completed available locked entry-level active-edge avail-edge bypassed');
+
+  if (completedSet.size === 0) return;   // nothing selected → default view
+
+  // Classify nodes
+  cy.nodes().forEach(n => {
+    const id = n.data('id');
+    if (completedSet.has(id)) {
+      n.addClass(bypassedSet.has(id) ? 'bypassed' : 'completed');
+    } else if (unlocked.has(id)) {
+      n.addClass('available');          // yellow glow — truly unlocked by selections
+    } else if (isEntryLevel(id)) {
+      n.addClass('entry-level');        // dim but still clickable
+    } else {
+      n.addClass('locked');             // prereqs not yet met → very dim, but still clickable
+    }
+  });
+
+  // Classify edges
+  cy.edges().forEach(e => {
+    const s = e.source().data('id'), t = e.target().data('id');
+    if (completedSet.has(s) && completedSet.has(t)) {
+      e.addClass('active-edge');
+    } else if (completedSet.has(s) && unlocked.has(t)) {
+      e.addClass('avail-edge');
+    } else {
+      e.addClass('locked');
+    }
+  });
+
+  refreshSidebar(unlocked);
+}
+
+// ──────────────────────────────────────────────────────────
+//  SIDEBAR
+// ──────────────────────────────────────────────────────────
+
+const pathListEl     = document.getElementById('path-list');
+const availListEl    = document.getElementById('avail-list');
+const availSection   = document.getElementById('avail-section');
+const pathStatsEl    = document.getElementById('path-stats');
+const sidebarHintEl  = document.getElementById('sidebar-hint');
+const statCount      = document.getElementById('stat-count');
+const statUnits      = document.getElementById('stat-units');
+
+function refreshSidebar(available) {
+  // Stats
+  if (pathOrder.length > 0) {
+    pathStatsEl.style.display = 'flex';
+    sidebarHintEl.style.display = 'none';
+    statCount.textContent = pathOrder.length;
+    const totalUnits = pathOrder.reduce((s, id) => s + (courseMap[id]?.units || 0), 0);
+    statUnits.textContent = totalUnits;
+  } else {
+    pathStatsEl.style.display = 'none';
+    sidebarHintEl.style.display = 'block';
+  }
+
+  // Completed list
+  pathListEl.innerHTML = '';
+  pathOrder.forEach((id, i) => {
+    const c = courseMap[id];
+    const isBypassed = bypassedSet.has(id);
+    const div = document.createElement('div');
+    div.className = 'path-item';
+    div.innerHTML = `
+      <span style="color:#64748b;font-size:.7rem;width:18px">${i + 1}.</span>
+      <span class="pip" style="background:${COLORS[c.dept].bg}"></span>
+      <span class="code">${c.id}</span>
+      ${isBypassed ? '<span style="color:#f472b6;font-size:.6rem;font-weight:700">AP/EXAM</span>' : ''}
+      <span class="title">${c.title}</span>
+      <span class="remove" data-id="${c.id}" title="Remove">✕</span>
+    `;
+    div.querySelector('.remove').addEventListener('click', (e) => {
+      e.stopPropagation();
+      removeCourse(id);
+    });
+    div.addEventListener('click', () => {
+      cy.getElementById(id).select();
+      cy.animate({ center: { eles: cy.getElementById(id) }, duration: 300 });
+    });
+    pathListEl.appendChild(div);
+  });
+
+  // Available list
+  if (available && available.size > 0 && pathOrder.length > 0) {
+    availSection.style.display = 'block';
+    availListEl.innerHTML = '';
+    const avail = courses.filter(c => available.has(c.id));
+    avail.forEach(c => {
+      const div = document.createElement('div');
+      div.className = 'avail-item';
+      div.innerHTML = `
+        <span class="pip" style="background:${COLORS[c.dept].bg}"></span>
+        <span style="font-weight:600">${c.id}</span>
+        <span style="color:#64748b;font-size:.68rem;margin-left:4px">${c.title}</span>
+      `;
+      div.addEventListener('click', () => addCourse(c.id));
+      availListEl.appendChild(div);
+    });
+  } else {
+    availSection.style.display = pathOrder.length > 0 ? 'block' : 'none';
+    if (pathOrder.length > 0) {
+      availListEl.innerHTML = '<div style="color:#475569;font-size:.72rem;padding:4px 0">No new courses available with current selection</div>';
+    }
+  }
+}
+
+function addCourse(id) {
+  if (completedSet.has(id)) return;
+  // Track if prereqs were NOT met (bypassed via AP/exam/placement)
+  if (!isCourseAvailable(id) && !isEntryLevel(id)) {
+    bypassedSet.add(id);
+  }
+  completedSet.add(id);
+  pathOrder.push(id);
+  refreshGraph();
+}
+
+function removeCourse(id) {
+  completedSet.delete(id);
+  bypassedSet.delete(id);
+  const idx = pathOrder.indexOf(id);
+  if (idx !== -1) pathOrder.splice(idx, 1);
+
+  // Cascade: remove courses whose prereqs are no longer met
+  let changed = true;
+  while (changed) {
+    changed = false;
+    for (let i = pathOrder.length - 1; i >= 0; i--) {
+      const cid = pathOrder[i];
+      const c = courseMap[cid];
+      if (c.prereqGroups && c.prereqGroups.length > 0) {
+        const met = c.prereqGroups.every(group => group.some(alt => completedSet.has(alt)));
+        if (!met) {
+          completedSet.delete(cid);
+          bypassedSet.delete(cid);
+          pathOrder.splice(i, 1);
+          changed = true;
+        }
+      }
+    }
+  }
+  refreshGraph();
+}
+
+// Reset
+document.getElementById('reset-btn').addEventListener('click', () => {
+  completedSet.clear();
+  bypassedSet.clear();
+  pathOrder.length = 0;
+  cy.elements().removeClass('completed available locked entry-level active-edge avail-edge bypassed');
+  refreshSidebar(new Set());
+});
+
+// ──────────────────────────────────────────────────────────
+//  CLICK → ADD TO PATH   (right-click → catalog)
+// ──────────────────────────────────────────────────────────
+
+cy.on('tap', 'node', (e) => {
+  const id = e.target.data('id');
+  if (completedSet.has(id)) {
+    removeCourse(id);
+  } else {
+    // Always allow adding — if prereqs not met, mark as bypassed (AP/exam/placement)
+    addCourse(id);
+  }
+});
+
+// Right-click → open catalog page
+cy.on('cxttap', 'node', (e) => {
+  const url = e.target.data('url');
+  if (url) window.open(url, '_blank');
+});
+
+// ──────────────────────────────────────────────────────────
+//  TOOLTIP (hover)
+// ──────────────────────────────────────────────────────────
+
+const tooltip = document.getElementById('tooltip');
+
+cy.on('mouseover', 'node', (e) => {
+  const d = e.target.data();
+  const id = d.id;
+  const status = completedSet.has(id)
+    ? (bypassedSet.has(id) ? '🟣 Added via AP/Exam bypass' : '✅ Completed')
+    : isCourseAvailable(id) ? '🟡 Available — click to add'
+    : '🔒 Prereqs not met — click to bypass via AP/exam';
+
+  let html = `<h3 style="color:${d.bgColor}">${d.label}</h3>`;
+  html += `<div style="color:#cbd5e1;margin-bottom:4px">${d.title}</div>`;
+  html += `<span class="units">${d.units} units</span>`;
+  html += `<div style="margin-top:4px;font-size:.75rem">${status}</div>`;
+  if (d.prereqText && d.prereqText !== 'None')
+    html += `<span class="prereq-label">Prerequisite: </span>${d.prereqText}`;
+  if (d.coreqText)
+    html += `<span class="coreq-label">Corequisite: </span>${d.coreqText}`;
+  if (d.advisoryText)
+    html += `<span class="advisory-label">Advisory: </span>${d.advisoryText}`;
+  if (d.apBypass)
+    html += `<div style="margin-top:6px;color:#f472b6;font-size:.75rem">🎓 <strong>AP/Exam bypass:</strong> ${d.apBypass}</div>`;
+  html += `<div class="tip-actions">Left-click: add/remove &nbsp;·&nbsp; Right-click: open catalog 🔗</div>`;
+  tooltip.innerHTML = html;
+  tooltip.style.display = 'block';
+});
+
+cy.on('mousemove', 'node', (e) => {
+  const pos = e.originalEvent;
+  let x = pos.clientX + 16, y = pos.clientY + 16;
+  if (x + 340 > window.innerWidth) x = pos.clientX - 350;
+  if (y + 220 > window.innerHeight) y = pos.clientY - 180;
+  tooltip.style.left = x + 'px';
+  tooltip.style.top = y + 'px';
+});
+
+cy.on('mouseout', 'node', () => { tooltip.style.display = 'none'; });
+
+// ──────────────────────────────────────────────────────────
+//  SEARCH
+// ──────────────────────────────────────────────────────────
+
+const searchBox = document.getElementById('search');
+searchBox.addEventListener('input', () => {
+  const q = searchBox.value.trim().toLowerCase();
+  cy.nodes().removeClass('search-match search-dim');
+  cy.edges().removeClass('search-dim');
+  if (!q) { refreshGraph(); return; }
+
+  const matches = cy.nodes().filter(n => {
+    const d = n.data();
+    return d.label.toLowerCase().includes(q)
+      || d.title.toLowerCase().includes(q)
+      || d.dept.toLowerCase().includes(q);
+  });
+  matches.addClass('search-match');
+  if (matches.length > 0) {
+    cy.elements().not(matches).not(matches.edgesWith(matches)).addClass('search-dim');
+  }
+});
+
+// ──────────────────────────────────────────────────────────
+//  LEGEND TOGGLE
+// ──────────────────────────────────────────────────────────
+
+const activeDepts = new Set(['math','phys','chem','bio','cs','stat']);
+document.querySelectorAll('.legend-item').forEach(el => {
+  el.addEventListener('click', () => {
+    const dept = el.dataset.dept;
+    if (activeDepts.has(dept)) { activeDepts.delete(dept); el.classList.add('dimmed'); }
+    else { activeDepts.add(dept); el.classList.remove('dimmed'); }
+    cy.nodes().forEach(n => {
+      n.style('display', activeDepts.has(n.data('dept')) ? 'element' : 'none');
+    });
+    cy.edges().forEach(e => {
+      const vis = e.source().style('display') !== 'none' && e.target().style('display') !== 'none';
+      e.style('display', vis ? 'element' : 'none');
+    });
+  });
+});
+
+// ──────────────────────────────────────────────────────────
+//  ZOOM
+// ──────────────────────────────────────────────────────────
+
+document.getElementById('zoom-in').addEventListener('click', () => {
+  cy.zoom({ level: cy.zoom() * 1.3, renderedPosition: { x: cy.width()/2, y: cy.height()/2 } });
+});
+document.getElementById('zoom-out').addEventListener('click', () => {
+  cy.zoom({ level: cy.zoom() / 1.3, renderedPosition: { x: cy.width()/2, y: cy.height()/2 } });
+});
+document.getElementById('zoom-fit').addEventListener('click', () => cy.fit(undefined, 40));
+
+cy.fit(undefined, 40);
+</script>
+</body>
+</html>
