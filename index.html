@@ -78,11 +78,16 @@
     display: flex; flex-direction: column; flex-shrink: 0; overflow: hidden;
   }
   .resize-handle {
-    width: 5px; cursor: col-resize; background: transparent;
+    width: 8px; cursor: col-resize; background: #1e293b;
     flex-shrink: 0; position: relative; z-index: 200;
-    transition: background .15s;
+    border-left: 1px solid #334155; border-right: 1px solid #334155;
+    display: flex; align-items: center; justify-content: center;
   }
-  .resize-handle:hover, .resize-handle.active {
+  .resize-handle::after {
+    content: ''; width: 3px; height: 32px; border-radius: 2px;
+    background: #475569; transition: background .15s;
+  }
+  .resize-handle:hover::after, .resize-handle.active::after {
     background: #3b82f6;
   }
   .resize-overlay {
@@ -1029,10 +1034,16 @@ resizeHandle.addEventListener('mousedown', (e) => {
   document.body.style.userSelect = 'none';
   e.preventDefault();
 });
+resizeHandle.addEventListener('dblclick', () => {
+  sidebar.style.width = '280px';
+  updateZoomPosition();
+  cy.resize();
+});
 document.addEventListener('mousemove', (e) => {
   if (!isResizing) return;
+  const maxW = Math.floor(window.innerWidth * 0.5);
   const newWidth = window.innerWidth - e.clientX;
-  const clamped = Math.min(600, Math.max(200, newWidth));
+  const clamped = Math.min(maxW, Math.max(200, newWidth));
   sidebar.style.width = clamped + 'px';
   updateZoomPosition();
 });
