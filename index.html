@@ -429,6 +429,18 @@ const courses = [
     prereqText:'Advisory: Int. Algebra', prereqGroups:[] },
 ];
 
+// ── AP Equivalency milestones ──
+const apMilestones = [
+  { id: 'AP_CALC_AB',   label: '🎓 AP Calc AB',        requires: ['MATH 1A'],              color: '#3b82f6' },
+  { id: 'AP_CALC_BC',   label: '🎓 AP Calc BC',        requires: ['MATH 1A','MATH 1B'],    color: '#3b82f6' },
+  { id: 'AP_CHEM',      label: '🎓 AP Chemistry',      requires: ['CHEM 1A','CHEM 1B'],    color: '#10b981' },
+  { id: 'AP_PHYS_MECH', label: '🎓 AP Physics C Mech', requires: ['PHYS 4A'],              color: '#f59e0b' },
+  { id: 'AP_PHYS_EM',   label: '🎓 AP Physics C E&M',  requires: ['PHYS 4B'],              color: '#f59e0b' },
+  { id: 'AP_STATS',     label: '🎓 AP Statistics',      requires: ['STAT C1000'],           color: '#06b6d4' },
+  { id: 'AP_BIO',       label: '🎓 AP Biology',         requires: ['BIOL 1A','BIOL 1B'],   color: '#ef4444' },
+  { id: 'AP_CS_A',      label: '🎓 AP CS A',            requires: ['C S 1A'],               color: '#8b5cf6' },
+];
+
 // Build lookup
 const courseMap = {};
 courses.forEach(c => { courseMap[c.id] = c; });
@@ -529,9 +541,27 @@ const edgeEls = edges.map((e, i) => ({
   data: { id: `e${i}`, source: e.from, target: e.to, edgeType: e.type }
 }));
 
+// AP milestone nodes + edges
+const apNodeEls = apMilestones.map(m => ({
+  data: {
+    id: m.id, label: m.label, dept: 'ap', isAP: 'true',
+    bgColor: '#0f172a', borderColor: m.color, textColor: m.color,
+    requires: m.requires.join(', '),
+  },
+  classes: 'ap-milestone',
+}));
+const apEdgeEls = [];
+apMilestones.forEach((m, mi) => {
+  m.requires.forEach((req, ri) => {
+    apEdgeEls.push({
+      data: { id: `ap_e${mi}_${ri}`, source: req, target: m.id, edgeType: 'ap' }
+    });
+  });
+});
+
 const cy = cytoscape({
   container: document.getElementById('cy'),
-  elements: [...nodeEls, ...edgeEls],
+  elements: [...nodeEls, ...edgeEls, ...apNodeEls, ...apEdgeEls],
   style: [
     {
       selector: 'node',
@@ -643,6 +673,43 @@ const cy = cytoscape({
       selector: 'edge.search-dim',
       style: { 'opacity': 0.04 }
     },
+    // ── AP Milestone nodes ──
+    {
+      selector: 'node.ap-milestone',
+      style: {
+        'shape': 'roundrectangle',
+        'border-width': 2.5, 'border-style': 'dashed',
+        'background-color': '#0f172a', 'background-opacity': 0.9,
+        'font-size': '10px', 'font-weight': '700',
+        'height': 36, 'padding': '10px',
+        'opacity': 0.45,
+        'text-max-width': '140px',
+      }
+    },
+    {
+      selector: 'node.ap-achieved',
+      style: {
+        'background-color': '#ffffff', 'background-opacity': 1,
+        'border-color': '#ffffff', 'border-style': 'solid', 'border-width': 3,
+        'color': '#000000', 'opacity': 1, 'z-index': 60,
+      }
+    },
+    {
+      selector: 'edge[edgeType="ap"]',
+      style: {
+        'width': 1.5, 'line-color': '#64748b', 'target-arrow-color': '#64748b',
+        'target-arrow-shape': 'diamond', 'arrow-scale': 0.8,
+        'curve-style': 'bezier', 'line-style': 'dotted',
+        'line-dash-pattern': [2, 6], 'opacity': 0.5,
+      }
+    },
+    {
+      selector: 'edge.ap-achieved-edge',
+      style: {
+        'line-color': '#e2e8f0', 'target-arrow-color': '#e2e8f0',
+        'opacity': 0.8, 'width': 2,
+      }
+    },
   ],
   layout: {
     name: 'dagre',
@@ -738,13 +805,16 @@ function refreshGraph() {
   const unlocked = new Set(getUnlockedCourses().map(c => c.id));
 
   // Reset classes
-  cy.elements().removeClass('completed available locked entry-level active-edge avail-edge bypassed');
+  cy.elements().removeClass('completed available locked entry-level active-edge avail-edge bypassed ap-achieved ap-achieved-edge');
 
   if (completedSet.size === 0) return;   // nothing selected → default view
+
+  const effective = getEffectiveSet();
 
   // Classify nodes
   cy.nodes().forEach(n => {
     const id = n.data('id');
+    if (n.hasClass('ap-milestone')) return; // handle AP nodes separately
     if (completedSet.has(id)) {
       n.addClass(bypassedSet.has(id) ? 'bypassed' : 'completed');
     } else if (unlocked.has(id)) {
@@ -756,10 +826,28 @@ function refreshGraph() {
     }
   });
 
+  // Check AP milestones
+  apMilestones.forEach(m => {
+    const achieved = m.requires.every(r => effective.has(r));
+    const node = cy.getElementById(m.id);
+    if (achieved) {
+      node.addClass('ap-achieved');
+    }
+  });
+
   // Classify edges
   cy.edges().forEach(e => {
     const s = e.source().data('id'), t = e.target().data('id');
-    if (completedSet.has(s) && completedSet.has(t)) {
+    const edgeType = e.data('edgeType');
+    if (edgeType === 'ap') {
+      // AP edges: check if milestone is achieved
+      const milestone = apMilestones.find(m => m.id === t);
+      if (milestone && milestone.requires.every(r => effective.has(r))) {
+        e.addClass('ap-achieved-edge');
+      } else {
+        e.addClass('locked');
+      }
+    } else if (completedSet.has(s) && completedSet.has(t)) {
       e.addClass('active-edge');
     } else if (completedSet.has(s) && unlocked.has(t)) {
       e.addClass('avail-edge');
@@ -888,7 +976,7 @@ document.getElementById('reset-btn').addEventListener('click', () => {
   completedSet.clear();
   bypassedSet.clear();
   pathOrder.length = 0;
-  cy.elements().removeClass('completed available locked entry-level active-edge avail-edge bypassed');
+  cy.elements().removeClass('completed available locked entry-level active-edge avail-edge bypassed ap-achieved ap-achieved-edge');
   refreshSidebar(new Set());
 });
 
@@ -898,6 +986,7 @@ document.getElementById('reset-btn').addEventListener('click', () => {
 
 cy.on('tap', 'node', (e) => {
   const id = e.target.data('id');
+  if (e.target.data('isAP')) return;  // AP milestone badges are not clickable
   if (completedSet.has(id)) {
     removeCourse(id);
   } else if (isCourseAvailable(id) || isEntryLevel(id)) {
@@ -924,6 +1013,28 @@ const tooltip = document.getElementById('tooltip');
 cy.on('mouseover', 'node', (e) => {
   const d = e.target.data();
   const id = d.id;
+
+  // AP milestone tooltip
+  if (d.isAP) {
+    const milestone = apMilestones.find(m => m.id === id);
+    const effective = getEffectiveSet();
+    const achieved = milestone && milestone.requires.every(r => effective.has(r));
+    let html = `<h3 style="color:${d.borderColor}">${d.label}</h3>`;
+    html += `<div style="color:#cbd5e1;margin-bottom:6px">${achieved ? '✅ Achieved!' : '⬜ Not yet achieved'}</div>`;
+    html += `<span style="color:#f59e0b;font-weight:600">Requires: </span>${d.requires}`;
+    if (milestone) {
+      html += '<div style="margin-top:6px">';
+      milestone.requires.forEach(r => {
+        const done = effective.has(r);
+        html += `<div style="font-size:.75rem">${done ? '✅' : '⬜'} ${r}</div>`;
+      });
+      html += '</div>';
+    }
+    tooltip.innerHTML = html;
+    tooltip.style.display = 'block';
+    return;
+  }
+
   const status = completedSet.has(id)
     ? (bypassedSet.has(id) ? '🟣 Added via AP/Exam bypass' : '✅ Completed')
     : isCourseAvailable(id) ? '🟡 Available — click to add'
