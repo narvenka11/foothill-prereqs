@@ -211,6 +211,7 @@
     <div class="legend-item" data-dept="bio"><div class="legend-dot" style="background:var(--bio-bg)"></div>Biology</div>
     <div class="legend-item" data-dept="cs"><div class="legend-dot" style="background:var(--cs-bg)"></div>Computer Science</div>
     <div class="legend-item" data-dept="stat"><div class="legend-dot" style="background:var(--stat-bg)"></div>Statistics</div>
+    <div class="legend-item" style="cursor:default"><div class="legend-dot" style="background:#fff; border:1.5px dashed #94a3b8;"></div>AP Equivalent</div>
   </div>
   <div class="edge-legend">
     <div class="edge-legend-item"><div class="edge-legend-line"></div> Prereq</div>
@@ -368,28 +369,48 @@ const courses = [
     prereqGroups:[['CHEM 12BL']] },
 
   // ─── BIOLOGY ───
-  { id:'BIOL 1A', dept:'bio', units:6, title:'General Biology I (Mol & Cell)',
+  { id:'BIOL 1A', dept:'bio', units:6, title:'Principles of Cell Biology',
     prereqText:'CHEM 1A', prereqGroups:[['CHEM 1A']] },
-  { id:'BIOL 1B', dept:'bio', units:6, title:'General Biology II (Ecology/Evo)',
+  { id:'BIOL 1B', dept:'bio', units:6, title:'Form & Function in Plants & Animals',
     prereqText:'BIOL 1A', prereqGroups:[['BIOL 1A']] },
-  { id:'BIOL 1C', dept:'bio', units:6, title:'General Biology III (Organismal)',
+  { id:'BIOL 1C', dept:'bio', units:6, title:'Evolution, Systematics & Ecology',
     prereqText:'BIOL 1B', prereqGroups:[['BIOL 1B']] },
-  { id:'BIOL 1D', dept:'bio', units:4, title:'Genetics',
+  { id:'BIOL 1D', dept:'bio', units:4, title:'Introduction to Molecular Genetics',
     prereqText:'BIOL 1A', prereqGroups:[['BIOL 1A']] },
-  { id:'BIOL 41', dept:'bio', units:6, title:'Human Anatomy & Physiology',
+  { id:'BIOL 41', dept:'bio', units:6, title:'Microbiology',
     prereqText:'CHEM 1A or CHEM 25 or CHEM 30A',
     prereqGroups:[['CHEM 1A','CHEM 25','CHEM 30A']] },
-  { id:'BIOL 40A', dept:'bio', units:5, title:'Human Anatomy',
-    prereqText:'Advisory: BIOL 14, CHEM', prereqGroups:[] },
-  { id:'BIOL 40B', dept:'bio', units:5, title:'Human Physiology I',
-    prereqText:'BIOL 40A', prereqGroups:[['BIOL 40A']] },
-  { id:'BIOL 40C', dept:'bio', units:5, title:'Human Physiology II',
-    prereqText:'BIOL 40A', prereqGroups:[['BIOL 40A']] },
-  { id:'BIOL 10', dept:'bio', units:5, title:'Introduction to Biology (w/ Lab)',
+  { id:'BIOL 40A', dept:'bio', units:5, title:'Human Anatomy & Physiology I',
     prereqText:'None', prereqGroups:[] },
-  { id:'BIOL 45', dept:'bio', units:4, title:'Biotechnology',
+  { id:'BIOL 40B', dept:'bio', units:5, title:'Human Anatomy & Physiology II',
+    prereqText:'BIOL 40A', prereqGroups:[['BIOL 40A']] },
+  { id:'BIOL 40C', dept:'bio', units:5, title:'Human Anatomy & Physiology III',
+    prereqText:'BIOL 40A', prereqGroups:[['BIOL 40A']] },
+  { id:'BIOL 10', dept:'bio', units:5, title:'General Biology: Basic Principles',
+    prereqText:'None', prereqGroups:[] },
+  { id:'BIOL 45', dept:'bio', units:4, title:'Introduction to Human Nutrition',
     prereqText:'BIOL 1A or BIOL 40A',
     prereqGroups:[['BIOL 1A','BIOL 40A']] },
+  { id:'BIOL 8',  dept:'bio', units:5, title:'Basic Nutrition',
+    prereqText:'None', prereqGroups:[] },
+  { id:'BIOL 9',  dept:'bio', units:4, title:'Environmental Biology',
+    prereqText:'None', prereqGroups:[] },
+  { id:'BIOL 9L', dept:'bio', units:1, title:'Environmental Biology Lab',
+    prereqText:'Coreq: BIOL 9', prereqGroups:[] },
+  { id:'BIOL 12', dept:'bio', units:4, title:'Human Genetics',
+    prereqText:'None', prereqGroups:[] },
+  { id:'BIOL 13', dept:'bio', units:5, title:'Marine Biology',
+    prereqText:'None', prereqGroups:[] },
+  { id:'BIOL 14', dept:'bio', units:5, title:'Human Biology',
+    prereqText:'None', prereqGroups:[] },
+  { id:'BIOL 15', dept:'bio', units:5, title:'California Ecology / Natural History',
+    prereqText:'None', prereqGroups:[] },
+  { id:'BIOL 28', dept:'bio', units:4, title:'Introduction to Bioengineering',
+    prereqText:'None', prereqGroups:[] },
+  { id:'BIOL 81', dept:'bio', units:4, title:'LEAD in STEM',
+    prereqText:'None', prereqGroups:[] },
+  { id:'BIOL 300',dept:'bio', units:4, title:'Human Pathophysiology & Pharmacology',
+    prereqText:'BIOL 40C', prereqGroups:[['BIOL 40C']] },
 
   // ─── CS ───
   { id:'C S 1A', dept:'cs', units:4.5, title:'OOP in Java',
@@ -431,14 +452,16 @@ const courses = [
 
 // ── AP Equivalency milestones ──
 const apMilestones = [
-  { id: 'AP_CALC_AB',   label: '🎓 AP Calc AB',        requires: ['MATH 1A'],              color: '#3b82f6' },
-  { id: 'AP_CALC_BC',   label: '🎓 AP Calc BC',        requires: ['MATH 1A','MATH 1B'],    color: '#3b82f6' },
-  { id: 'AP_CHEM',      label: '🎓 AP Chemistry',      requires: ['CHEM 1A','CHEM 1B'],    color: '#10b981' },
-  { id: 'AP_PHYS_MECH', label: '🎓 AP Physics C Mech', requires: ['PHYS 4A'],              color: '#f59e0b' },
-  { id: 'AP_PHYS_EM',   label: '🎓 AP Physics C E&M',  requires: ['PHYS 4B'],              color: '#f59e0b' },
-  { id: 'AP_STATS',     label: '🎓 AP Statistics',      requires: ['STAT C1000'],           color: '#06b6d4' },
-  { id: 'AP_BIO',       label: '🎓 AP Biology',         requires: ['BIOL 1A','BIOL 1B'],   color: '#ef4444' },
-  { id: 'AP_CS_A',      label: '🎓 AP CS A',            requires: ['C S 1A'],               color: '#8b5cf6' },
+  { id: 'AP_CALC_AB',   label: '🎓 AP Calc AB',          requires: ['MATH 1A'],                          color: '#3b82f6' },
+  { id: 'AP_CALC_BC',   label: '🎓 AP Calc BC',          requires: ['MATH 1A','MATH 1B'],                color: '#3b82f6' },
+  { id: 'AP_CHEM',      label: '🎓 AP Chemistry',        requires: ['CHEM 1A','CHEM 1B'],                color: '#10b981' },
+  { id: 'AP_PHYS_MECH', label: '🎓 AP Physics C Mech',   requires: ['PHYS 4A'],                          color: '#f59e0b' },
+  { id: 'AP_PHYS_EM',   label: '🎓 AP Physics C E&M',    requires: ['PHYS 4B'],                          color: '#f59e0b' },
+  { id: 'AP_PHYS_1',    label: '🎓 AP Physics 1',        requires: ['PHYS 2A'],                          color: '#f59e0b' },
+  { id: 'AP_PHYS_2',    label: '🎓 AP Physics 2',        requires: ['PHYS 2B','PHYS 2C'],                color: '#f59e0b' },
+  { id: 'AP_STATS',     label: '🎓 AP Statistics',        requires: ['STAT C1000'],                       color: '#06b6d4' },
+  { id: 'AP_BIO',       label: '🎓 AP Biology',           requires: ['BIOL 1A','BIOL 1B','BIOL 1C'],     color: '#ef4444' },
+  { id: 'AP_CS_A',      label: '🎓 AP CS A',              requires: ['C S 1A'],                           color: '#8b5cf6' },
 ];
 
 // Build lookup
@@ -502,6 +525,8 @@ const edges = [
   { from:'CHEM 30A', to:'BIOL 41', type:'prereq' },
   { from:'BIOL 40A', to:'BIOL 40B', type:'prereq' },
   { from:'BIOL 40A', to:'BIOL 40C', type:'prereq' },
+  { from:'BIOL 9',   to:'BIOL 9L',  type:'coreq' },
+  { from:'BIOL 40C', to:'BIOL 300', type:'prereq' },
   // CS
   { from:'C S 1A', to:'C S 1B', type:'prereq' },
   { from:'C S 1B', to:'C S 1C', type:'prereq' },
