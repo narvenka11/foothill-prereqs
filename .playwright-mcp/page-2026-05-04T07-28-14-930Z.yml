@@ -1,0 +1,42 @@
+- generic [active] [ref=e1]:
+  - banner [ref=e2]:
+    - heading "🦉 Foothill Dual Enrollment Course Builder" [level=1] [ref=e4]
+    - generic [ref=e5]:
+      - generic [ref=e6]: Foothill Dual Enrollment Course Builder
+      - generic [ref=e7]: 2025-2026 Catalog · Click courses to build your path
+  - generic [ref=e8]:
+    - textbox "🔍 Search courses…" [ref=e9]:
+      - /placeholder: 🔍  Search courses…
+    - generic [ref=e10]:
+      - generic [ref=e11] [cursor=pointer]: Math
+      - generic [ref=e13] [cursor=pointer]: Physics
+      - generic [ref=e15] [cursor=pointer]: Chemistry
+      - generic [ref=e17] [cursor=pointer]: Biology
+      - generic [ref=e19] [cursor=pointer]: Computer Science
+      - generic [ref=e21] [cursor=pointer]: Statistics
+      - generic [ref=e23]: AP Equivalent
+    - generic [ref=e25]:
+      - generic [ref=e26]: Prereq
+      - generic [ref=e28]: Coreq
+      - generic [ref=e30]: Advisory
+  - generic [ref=e38]:
+    - generic [ref=e39]:
+      - heading "🗺️ Plan Builder" [level=2] [ref=e55]:
+        - generic [ref=e41]: 🗺️
+        - generic [ref=e42]: Plan Builder
+      - button "Reset" [ref=e43] [cursor=pointer]
+      - button "Collapse panel" [ref=e44] [cursor=pointer]: ›
+    - generic [ref=e45]:
+      - text: Click any course to mark it as
+      - strong [ref=e46]: completed
+      - text: . Courses you can take next will glow.
+      - text: Courses with
+      - strong [ref=e47]: AP/exam bypass
+      - text: (🎓) can be selected directly without prereqs.
+      - text: Right-click → open catalog page.
+    - link "📖 Full Foothill College Catalog →" [ref=e49] [cursor=pointer]:
+      - /url: https://catalog.foothill.edu/courses-az/
+  - generic [ref=e50]:
+    - button "+" [ref=e51] [cursor=pointer]
+    - button "−" [ref=e52] [cursor=pointer]
+    - button "⊡" [ref=e53] [cursor=pointer]

@@ -1,0 +1,4 @@
+[      64ms] [WARNING] You have set a custom wheel sensitivity.  This will make your app zoom unnaturally when using mainstream mice.  You should change this value from the default only if you can guarantee that all your users will use the same hardware and OS configuration as your current machine. @ https://unpkg.com/cytoscape@3.28.1/dist/cytoscape.min.js:22
+[      65ms] [WARNING] The style value of `label` is deprecated for `width` @ https://unpkg.com/cytoscape@3.28.1/dist/cytoscape.min.js:22
+[      66ms] [WARNING] The style property `cursor: pointer` is invalid @ https://unpkg.com/cytoscape@3.28.1/dist/cytoscape.min.js:22
+[      66ms] [WARNING] The style property `font-weight: 700` is invalid @ https://unpkg.com/cytoscape@3.28.1/dist/cytoscape.min.js:22

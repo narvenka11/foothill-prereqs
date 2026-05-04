@@ -1114,8 +1114,9 @@ collapseBtn.addEventListener('click', (e) => {
   applyCollapsed(next);
   try { localStorage.setItem(COLLAPSE_KEY, next ? '1' : '0'); } catch (_) {}
 });
-// When collapsed, clicking anywhere on the strip expands it
-sidebarEl.addEventListener('click', () => {
+// When collapsed, clicking anywhere on the strip (but not the button) expands it
+sidebarEl.addEventListener('click', (e) => {
+  if (e.target.closest('#collapse-btn')) return;
   if (sidebarEl.classList.contains('collapsed')) {
     applyCollapsed(false);
     try { localStorage.setItem(COLLAPSE_KEY, '0'); } catch (_) {}
