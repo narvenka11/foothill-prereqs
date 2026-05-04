@@ -78,8 +78,14 @@
     display: flex; flex-direction: column; flex-shrink: 0; overflow: hidden;
     transition: width .25s ease;
   }
-  .sidebar.collapsed { width: 44px; }
-  .sidebar.collapsed .sidebar-header { padding: 14px 6px 10px; justify-content: center; }
+  .sidebar.collapsed { width: 44px; cursor: pointer; }
+  .sidebar.collapsed:hover { background: #243244; }
+  .sidebar.collapsed .sidebar-header {
+    padding: 14px 0; justify-content: center; border-bottom: none;
+    flex-direction: column; gap: 10px;
+  }
+  .sidebar.collapsed .sidebar-header h2 { font-size: 1.1rem; }
+  .sidebar.collapsed .sidebar-header h2 .emoji { margin-right: 0; }
   .sidebar.collapsed .sidebar-header h2 .label,
   .sidebar.collapsed .reset-btn,
   .sidebar.collapsed .sidebar-hint,
@@ -87,6 +93,10 @@
   .sidebar.collapsed .path-list,
   .sidebar.collapsed .available-section,
   .sidebar.collapsed .catalog-link { display: none !important; }
+  .sidebar.collapsed .collapse-btn {
+    width: 28px; height: 28px; padding: 0; font-size: 1.1rem;
+    display: flex; align-items: center; justify-content: center;
+  }
   .sidebar-header {
     padding: 14px 16px 10px; border-bottom: 1px solid #334155;
     display: flex; align-items: center; justify-content: space-between;
@@ -1098,10 +1108,18 @@ function applyCollapsed(collapsed) {
   // Cytoscape needs a resize after the sidebar width transition
   setTimeout(() => { cy.resize(); cy.fit(undefined, 40); }, 280);
 }
-collapseBtn.addEventListener('click', () => {
+collapseBtn.addEventListener('click', (e) => {
+  e.stopPropagation();
   const next = !sidebarEl.classList.contains('collapsed');
   applyCollapsed(next);
   try { localStorage.setItem(COLLAPSE_KEY, next ? '1' : '0'); } catch (_) {}
+});
+// When collapsed, clicking anywhere on the strip expands it
+sidebarEl.addEventListener('click', () => {
+  if (sidebarEl.classList.contains('collapsed')) {
+    applyCollapsed(false);
+    try { localStorage.setItem(COLLAPSE_KEY, '0'); } catch (_) {}
+  }
 });
 try {
   if (localStorage.getItem(COLLAPSE_KEY) === '1') applyCollapsed(true);
