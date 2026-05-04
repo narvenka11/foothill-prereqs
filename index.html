@@ -76,13 +76,31 @@
     width: 380px;
     background: #1e293b; border-left: 1px solid #334155;
     display: flex; flex-direction: column; flex-shrink: 0; overflow: hidden;
+    transition: width .25s ease;
   }
+  .sidebar.collapsed { width: 44px; }
+  .sidebar.collapsed .sidebar-header { padding: 14px 6px 10px; justify-content: center; }
+  .sidebar.collapsed .sidebar-header h2 .label,
+  .sidebar.collapsed .reset-btn,
+  .sidebar.collapsed .sidebar-hint,
+  .sidebar.collapsed .path-stats,
+  .sidebar.collapsed .path-list,
+  .sidebar.collapsed .available-section,
+  .sidebar.collapsed .catalog-link { display: none !important; }
   .sidebar-header {
     padding: 14px 16px 10px; border-bottom: 1px solid #334155;
     display: flex; align-items: center; justify-content: space-between;
+    gap: 8px;
   }
-  .sidebar-header h2 { font-size: .9rem; font-weight: 700; }
+  .sidebar-header h2 { font-size: .9rem; font-weight: 700; display: flex; align-items: center; }
   .sidebar-header h2 .emoji { margin-right: 4px; }
+  .collapse-btn {
+    font-size: .8rem; line-height: 1; padding: 4px 8px; border-radius: 5px;
+    border: 1px solid #475569; background: transparent; color: #94a3b8;
+    cursor: pointer; transition: all .2s; font-family: inherit;
+  }
+  .collapse-btn:hover { background: #334155; color: #e2e8f0; }
+  .sidebar.collapsed .collapse-btn { padding: 6px 8px; }
   .reset-btn {
     font-size: .7rem; padding: 4px 10px; border-radius: 5px;
     border: 1px solid #475569; background: transparent; color: #94a3b8;
@@ -226,8 +244,9 @@
   <!-- Sidebar: path builder -->
   <div class="sidebar" id="sidebar">
     <div class="sidebar-header">
-      <h2><span class="emoji">🗺️</span> Plan Builder</h2>
+      <h2><span class="emoji">🗺️</span><span class="label">Plan Builder</span></h2>
       <button class="reset-btn" id="reset-btn">Reset</button>
+      <button class="collapse-btn" id="collapse-btn" title="Collapse panel" aria-label="Collapse panel">›</button>
     </div>
     <div class="sidebar-hint" id="sidebar-hint">
       Click any course to mark it as <strong style="color:#22d3ee">completed</strong>.
@@ -1067,6 +1086,26 @@ document.getElementById('reset-btn').addEventListener('click', () => {
   cy.elements().removeClass('completed available locked entry-level active-edge avail-edge bypassed ap-achieved ap-achieved-edge');
   refreshSidebar(new Set());
 });
+
+// Collapse / expand sidebar
+const sidebarEl  = document.getElementById('sidebar');
+const collapseBtn = document.getElementById('collapse-btn');
+const COLLAPSE_KEY = 'fh-sidebar-collapsed';
+function applyCollapsed(collapsed) {
+  sidebarEl.classList.toggle('collapsed', collapsed);
+  collapseBtn.textContent = collapsed ? '‹' : '›';
+  collapseBtn.title = collapsed ? 'Expand panel' : 'Collapse panel';
+  // Cytoscape needs a resize after the sidebar width transition
+  setTimeout(() => { cy.resize(); cy.fit(undefined, 40); }, 280);
+}
+collapseBtn.addEventListener('click', () => {
+  const next = !sidebarEl.classList.contains('collapsed');
+  applyCollapsed(next);
+  try { localStorage.setItem(COLLAPSE_KEY, next ? '1' : '0'); } catch (_) {}
+});
+try {
+  if (localStorage.getItem(COLLAPSE_KEY) === '1') applyCollapsed(true);
+} catch (_) {}
 
 // ──────────────────────────────────────────────────────────
 //  CLICK → ADD TO PATH   (right-click → catalog)
