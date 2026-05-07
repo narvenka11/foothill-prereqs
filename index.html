@@ -849,10 +849,23 @@ const cy = cytoscape({
 // ──────────────────────────────────────────────────────────
 // dagre's LR layout assigns ranks (x columns) by topology, but the
 // vertical (y) order within a column is heuristic — leading to CS
-// nodes appearing between chem and bio. We post-process the layout
-// to group nodes vertically by department so related fields stay
-// together.
+// nodes appearing between chem and bio, and AP badges floating to
+// the bottom far from related courses. We post-process the layout
+// to group nodes vertically by department so related fields (and
+// their AP equivalents) stay together.
 const DEPT_ORDER = { math: 0, phys: 1, chem: 2, bio: 3, cs: 4, stat: 5 };
+const AP_DEPT = {
+  AP_CALC_AB: 'math', AP_CALC_BC: 'math',
+  AP_PHYS_MECH: 'phys', AP_PHYS_EM: 'phys', AP_PHYS_1: 'phys', AP_PHYS_2: 'phys',
+  AP_CHEM: 'chem',
+  AP_BIO: 'bio',
+  AP_CS_A: 'cs',
+  AP_STATS: 'stat',
+};
+function deptOf(node) {
+  const id = node.data('id');
+  return AP_DEPT[id] || node.data('dept');
+}
 function reorderColumnsByDept() {
   const buckets = new Map(); // x → [nodes]
   cy.nodes().forEach(n => {
@@ -864,9 +877,14 @@ function reorderColumnsByDept() {
     if (nodes.length < 2) return;
     const ys = nodes.map(n => n.position('y')).sort((a, b) => a - b);
     nodes.sort((a, b) => {
-      const da = DEPT_ORDER[a.data('dept')] ?? 99;
-      const db = DEPT_ORDER[b.data('dept')] ?? 99;
+      const da = DEPT_ORDER[deptOf(a)] ?? 99;
+      const db = DEPT_ORDER[deptOf(b)] ?? 99;
       if (da !== db) return da - db;
+      // Within a dept: place AP badges right after their primary
+      // course rather than at the start/end of the dept group.
+      const aIsAP = !!a.data('isAP');
+      const bIsAP = !!b.data('isAP');
+      if (aIsAP !== bIsAP) return aIsAP ? 1 : -1;
       return a.data('id').localeCompare(b.data('id'));
     });
     nodes.forEach((n, i) => n.position('y', ys[i]));
