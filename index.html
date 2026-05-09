@@ -1327,9 +1327,8 @@ searchBox.addEventListener('input', () => {
 
   const matches = cy.nodes().filter(n => {
     const d = n.data();
-    return d.label.toLowerCase().includes(q)
-      || d.title.toLowerCase().includes(q)
-      || d.dept.toLowerCase().includes(q);
+    const hay = `${d.label || ''} ${d.title || ''} ${d.dept || ''}`.toLowerCase();
+    return hay.includes(q);
   });
   matches.addClass('search-match');
   if (matches.length > 0) {
