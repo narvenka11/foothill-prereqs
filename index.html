@@ -1265,7 +1265,7 @@ cy.on('mouseover', 'node', (e) => {
     const effective = getEffectiveSet();
     const achieved = milestone && milestone.requires.every(r => effective.has(r));
     let html = `<h3 style="color:${d.borderColor}">${d.label}</h3>`;
-    html += `<div style="color:#cbd5e1;margin-bottom:6px">${achieved ? '✅ Achieved!' : '⬜ Not yet achieved'}</div>`;
+    html += `<div style="color:#475569;margin-bottom:6px">${achieved ? '✅ Achieved!' : '⬜ Not yet achieved'}</div>`;
     html += `<span style="color:#f59e0b;font-weight:600">Requires: </span>${d.requires}`;
     if (milestone) {
       html += '<div style="margin-top:6px">';
@@ -1287,7 +1287,7 @@ cy.on('mouseover', 'node', (e) => {
     : '🔒 Prereqs not met';
 
   let html = `<h3 style="color:${d.bgColor}">${d.label}</h3>`;
-  html += `<div style="color:#cbd5e1;margin-bottom:4px">${d.title}</div>`;
+  html += `<div style="color:#475569;margin-bottom:4px">${d.title}</div>`;
   html += `<span class="units">${d.units} units</span>`;
   html += `<div style="margin-top:4px;font-size:.75rem">${status}</div>`;
   if (d.prereqText && d.prereqText !== 'None')
