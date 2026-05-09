@@ -35,7 +35,7 @@
   header h1 span { color: #1d4ed8; }
   .hdr-right { text-align: right; }
   .hdr-right .name { font-size: 1rem; font-weight: 600; color: #1d4ed8; }
-  .hdr-right .sub  { font-size: .7rem; color: #64748b; }
+  .hdr-right .sub  { font-size: .7rem; color: #475569; }
 
   /* ── Controls bar ── */
   .controls {
@@ -54,16 +54,16 @@
   .legend-dot { width: 12px; height: 12px; border-radius: 3px; flex-shrink: 0; }
 
   .edge-legend { display: flex; gap: 14px; margin-left: auto; }
-  .edge-legend-item { display: flex; align-items: center; gap: 5px; font-size: .7rem; color: #64748b; }
+  .edge-legend-item { display: flex; align-items: center; gap: 5px; font-size: .7rem; color: #475569; }
   .edge-legend-line { width: 28px; height: 0; border-top: 2px solid #64748b; }
   .edge-legend-line.dashed { border-top-style: dashed; border-top-color: #10b981; }
-  .edge-legend-line.dotted { border-top-style: dotted; border-top-color: #94a3b8; }
+  .edge-legend-line.dotted { border-top-style: dotted; border-top-color: #64748b; }
 
   .search-box {
     padding: 5px 10px; border-radius: 6px; border: 1px solid #94a3b8;
     background: #f1f5f9; color: #1e293b; font-size: .8rem; width: 180px; outline: none;
   }
-  .search-box::placeholder { color: #64748b; }
+  .search-box::placeholder { color: #475569; }
   .search-box:focus { border-color: #1d4ed8; }
 
   /* ── Main area: graph + sidebar ── */
@@ -106,25 +106,25 @@
   .sidebar-header h2 .emoji { margin-right: 4px; }
   .collapse-btn {
     font-size: .8rem; line-height: 1; padding: 4px 8px; border-radius: 5px;
-    border: 1px solid #94a3b8; background: transparent; color: #64748b;
+    border: 1px solid #94a3b8; background: transparent; color: #475569;
     cursor: pointer; transition: all .2s; font-family: inherit;
   }
   .collapse-btn:hover { background: #cbd5e1; color: #1e293b; }
   .sidebar.collapsed .collapse-btn { padding: 6px 8px; }
   .reset-btn {
     font-size: .7rem; padding: 4px 10px; border-radius: 5px;
-    border: 1px solid #94a3b8; background: transparent; color: #64748b;
+    border: 1px solid #94a3b8; background: transparent; color: #475569;
     cursor: pointer; transition: all .2s;
   }
   .reset-btn:hover { background: #ef4444; color: #fff; border-color: #ef4444; }
 
   .sidebar-hint {
-    padding: 10px 16px; font-size: .72rem; color: #64748b; line-height: 1.5;
+    padding: 10px 16px; font-size: .72rem; color: #475569; line-height: 1.5;
     border-bottom: 1px solid #cbd5e1;
   }
 
   .path-stats {
-    padding: 10px 16px; font-size: .75rem; color: #64748b; border-bottom: 1px solid #cbd5e1;
+    padding: 10px 16px; font-size: .75rem; color: #475569; border-bottom: 1px solid #cbd5e1;
     display: flex; gap: 16px;
   }
   .path-stats .stat-val { font-weight: 700; color: #1e293b; }
@@ -145,10 +145,10 @@
     width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0;
   }
   .path-item .code { font-weight: 600; min-width: 80px; }
-  .path-item .title { color: #64748b; font-size: .72rem; white-space: nowrap;
+  .path-item .title { color: #475569; font-size: .72rem; white-space: nowrap;
     overflow: hidden; text-overflow: ellipsis; }
   .path-item .remove {
-    margin-left: auto; color: #64748b; font-size: .8rem; padding: 0 4px;
+    margin-left: auto; color: #475569; font-size: .8rem; padding: 0 4px;
     cursor: pointer; opacity: 0; transition: opacity .15s;
   }
   .path-item:hover .remove { opacity: 1; }
@@ -200,10 +200,10 @@
   .tooltip .units { color: #1d4ed8; font-weight: 600; }
   .tooltip .prereq-label { color: #f59e0b; font-weight: 600; margin-top: 4px; display: block; }
   .tooltip .coreq-label  { color: #10b981; font-weight: 600; margin-top: 4px; display: block; }
-  .tooltip .advisory-label { color: #64748b; font-weight: 600; margin-top: 4px; display: block; }
+  .tooltip .advisory-label { color: #475569; font-weight: 600; margin-top: 4px; display: block; }
   .tooltip .tip-actions {
     margin-top: 8px; padding-top: 6px; border-top: 1px solid #cbd5e1;
-    font-size: .7rem; color: #64748b;
+    font-size: .7rem; color: #475569;
   }
 
   /* ── Zoom controls ── */
@@ -262,7 +262,7 @@
       Click any course to mark it as <strong style="color:#22d3ee">completed</strong>.
       Courses you can take next will glow.<br>
       Courses with <strong style="color:#f472b6">AP/exam bypass</strong> (🎓) can be selected directly without prereqs.<br>
-      <span style="color:#94a3b8">Right-click → open catalog page.</span>
+      <span style="color: #64748b">Right-click → open catalog page.</span>
     </div>
     <div class="path-stats" id="path-stats" style="display:none">
       <div>Courses: <span class="stat-val" id="stat-count">0</span></div>
@@ -1108,7 +1108,7 @@ function refreshSidebar(available) {
     const div = document.createElement('div');
     div.className = 'path-item';
     div.innerHTML = `
-      <span style="color:#64748b;font-size:.7rem;width:18px">${i + 1}.</span>
+      <span style="color: #475569;font-size:.7rem;width:18px">${i + 1}.</span>
       <span class="pip" style="background:${COLORS[c.dept].bg}"></span>
       <span class="code">${c.id}</span>
       ${isBypassed ? '<span style="color:#f472b6;font-size:.6rem;font-weight:700">AP/EXAM</span>' : ''}
@@ -1137,7 +1137,7 @@ function refreshSidebar(available) {
       div.innerHTML = `
         <span class="pip" style="background:${COLORS[c.dept].bg}"></span>
         <span style="font-weight:600">${c.id}</span>
-        <span style="color:#64748b;font-size:.68rem;margin-left:4px">${c.title}</span>
+        <span style="color: #475569;font-size:.68rem;margin-left:4px">${c.title}</span>
       `;
       div.addEventListener('click', () => addCourse(c.id));
       availListEl.appendChild(div);
@@ -1145,7 +1145,7 @@ function refreshSidebar(available) {
   } else {
     availSection.style.display = pathOrder.length > 0 ? 'block' : 'none';
     if (pathOrder.length > 0) {
-      availListEl.innerHTML = '<div style="color:#94a3b8;font-size:.72rem;padding:4px 0">No new courses available with current selection</div>';
+      availListEl.innerHTML = '<div style="color: #64748b;font-size:.72rem;padding:4px 0">No new courses available with current selection</div>';
     }
   }
 }
