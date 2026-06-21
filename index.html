@@ -15,6 +15,7 @@
     --bio-bg:  #ef4444; --bio-border:  #b91c1c;
     --cs-bg:   #8b5cf6; --cs-border:   #6d28d9;
     --stat-bg: #06b6d4; --stat-border: #0e7490;
+    --econ-bg: #ec4899; --econ-border: #be185d;
   }
   * { margin:0; padding:0; box-sizing:border-box; }
   body {
@@ -239,6 +240,7 @@
     <div class="legend-item" data-dept="bio"><div class="legend-dot" style="background:var(--bio-bg)"></div>Biology</div>
     <div class="legend-item" data-dept="cs"><div class="legend-dot" style="background:var(--cs-bg)"></div>Computer Science</div>
     <div class="legend-item" data-dept="stat"><div class="legend-dot" style="background:var(--stat-bg)"></div>Statistics</div>
+    <div class="legend-item" data-dept="econ"><div class="legend-dot" style="background:var(--econ-bg)"></div>Economics</div>
     <div class="legend-item" style="cursor:default"><div class="legend-dot" style="background:#1e293b; border:1.5px dashed #64748b;"></div>AP Equivalent</div>
   </div>
   <div class="edge-legend">
@@ -302,6 +304,7 @@ const COLORS = {
   bio:  { bg: '#ef4444', border: '#b91c1c', text: '#fff' },
   cs:   { bg: '#8b5cf6', border: '#6d28d9', text: '#fff' },
   stat: { bg: '#06b6d4', border: '#0e7490', text: '#fff' },
+  econ: { bg: '#ec4899', border: '#be185d', text: '#fff' },
 };
 
 // prereqGroups: array of OR-groups; ALL groups must be satisfied (AND).
@@ -342,6 +345,20 @@ const courses = [
   { id:'STAT C1000', dept:'stat', units:5, title:'Elementary Statistics',
     prereqText:'Intermediate Algebra placement', prereqGroups:[],
     apBypass:'AP Statistics (3+)' },
+
+  // ─── ECONOMICS ───
+  { id:'ECON 1A', dept:'econ', units:5, title:'Principles of Macroeconomics',
+    prereqText:'Elementary Algebra or equiv', prereqGroups:[],
+    advisoryText:'Intermediate Algebra recommended',
+    apBypass:'AP Macroeconomics (3+)' },
+  { id:'ECON 1B', dept:'econ', units:5, title:'Principles of Microeconomics',
+    prereqText:'Elementary Algebra or equiv', prereqGroups:[],
+    advisoryText:'Intermediate Algebra recommended',
+    apBypass:'AP Microeconomics (3+)' },
+  { id:'ECON 9', dept:'econ', units:4, title:'International Political Economy (= POLI 9)',
+    prereqText:'None', prereqGroups:[] },
+  { id:'ECON 9H', dept:'econ', units:4, title:'Honors International Political Economy (= POLI 9H)',
+    prereqText:'None', prereqGroups:[] },
 
   // ─── PHYSICS ───
   { id:'PHYS 2A', dept:'phys', units:5, title:'General Physics I (non-calc)',
@@ -540,6 +557,8 @@ const apMilestones = [
   { id: 'AP_BIO',       label: '🎓 AP Biology',           requires: ['BIOL 1A','BIOL 1B','BIOL 1C'],     color: '#ef4444' },
   { id: 'AP_CS_A',      label: '🎓 AP CS A',              requires: ['C S 1A'],                           color: '#8b5cf6' },
   { id: 'AP_CSP',       label: '🎓 AP CS Principles',     requires: ['C S 1A'],                           color: '#8b5cf6' },
+  { id: 'AP_MACRO',     label: '🎓 AP Macroeconomics',    requires: ['ECON 1A'],                          color: '#ec4899' },
+  { id: 'AP_MICRO',     label: '🎓 AP Microeconomics',    requires: ['ECON 1B'],                          color: '#ec4899' },
 ];
 
 // Build lookup
@@ -854,7 +873,7 @@ const cy = cytoscape({
 // its own horizontal swimlane and stack the bands vertically in
 // math → phys → chem → bio → cs → stat order. AP badges go in the
 // band of their associated subject.
-const DEPT_ORDER = ['math', 'phys', 'chem', 'bio', 'cs', 'stat'];
+const DEPT_ORDER = ['math', 'phys', 'chem', 'bio', 'cs', 'stat', 'econ'];
 const AP_DEPT = {
   AP_CALC_AB: 'math', AP_CALC_BC: 'math',
   AP_PHYS_MECH: 'phys', AP_PHYS_EM: 'phys', AP_PHYS_1: 'phys', AP_PHYS_2: 'phys',
@@ -863,6 +882,7 @@ const AP_DEPT = {
   AP_CS_A: 'cs',
   AP_CSP: 'cs',
   AP_STATS: 'stat',
+  AP_MACRO: 'econ', AP_MICRO: 'econ',
 };
 function deptOf(node) {
   const id = node.data('id');
